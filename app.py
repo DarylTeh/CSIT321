@@ -5,6 +5,8 @@ import itertools
 from collections import Counter
 from collections import deque
 import pyautogui
+import tkinter as tk
+from tkinter import ttk
 
 import cv2 as cv
 import numpy as np
@@ -149,6 +151,82 @@ def get_args():
 
 
 def main():
+    # Create a mapping for the gestures and keypresses
+    gesture_to_key = {}
+
+    # Define the list of gestures
+    gestures = ["Middle Finger", "Thumb Up", "Thumb Down", "Peace Sign", "OK Sign", "Fist"]
+
+    # Create a function to handle keypress events
+    def record_key(event, gesture, label):
+        gesture_to_key[gesture] = event.keysym
+        label.config(text=f"{gesture}: {event.keysym}", foreground="green")
+        root.unbind("<Key>")
+
+    # Define a function to enable key recording
+    def enable_recording(gesture, label):
+        label.config(text=f"{gesture}: Press any key...", foreground="orange")
+        root.bind("<Key>", lambda event: record_key(event, gesture, label))
+
+    # Define a function that will be called when the user clicks "Proceed"
+    def proceed():
+        print("Gesture to key mapping:")
+        # print(str(gesture_to_key[gesture]))
+        # for gesture, key in gesture_to_key.items():
+        #     print(f"{gesture}: {key}")
+        # Here you can add any additional actions for when the proceed button is pressed
+        root.quit()
+
+    # Create the main window
+    root = tk.Tk()
+    root.title("Gesture to Key Mapping")
+    root.geometry("500x500")
+    root.configure(bg="#f0f0f0")
+
+    # Use a nicer theme
+    style = ttk.Style()
+    style.theme_use('clam')
+    style.configure('TButton', font=('Arial', 12), padding=5)
+    style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
+    style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
+
+    # Create a frame to hold all mappings
+    frame = ttk.Frame(root, padding=20, style='Frame.TFrame')
+    frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+    # Header Label
+    header_label = ttk.Label(frame, text="Map Gestures to Key Presses", style='Header.TLabel')
+    header_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+
+    # Add labels and buttons for each gesture
+    for idx, gesture in enumerate(gestures):
+        label = ttk.Label(frame, text=f"{gesture}: Not assigned", foreground="red")
+        label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
+        
+        button = ttk.Button(frame, text="Click to record", 
+                            command=lambda g=gesture, l=label: enable_recording(g, l))
+        button.grid(row=idx + 1, column=1, padx=10, pady=10)
+        
+        # Add hover effect to buttons
+        def on_enter(event, b=button):
+            b.config(style='Hover.TButton')
+        
+        def on_leave(event, b=button):
+            b.config(style='TButton')
+
+        button.bind("<Enter>", on_enter)
+        button.bind("<Leave>", on_leave)
+
+    style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
+
+    # Add a proceed button
+    proceed_button = ttk.Button(frame, text="Proceed", command=proceed, style='TButton')
+    proceed_button.grid(row=len(gestures) + 2, column=0, columnspan=2, pady=20)
+
+    # Run the application
+    root.mainloop()
+
+
     args = get_args()
 
     cap_device = args.device
@@ -249,20 +327,23 @@ def main():
                     finger_gesture_history).most_common()
                 
                 if is_middle_finger_up(hand_landmarks.landmark):
-                    gesture_text = "FK YOUUUUUUUUUUUUUUUUUU"
-                    # use pyautogui or pydirectinput or keyboard
-                    # make all your custom function detector and send commands here
-                    pyautogui.press('2')
+                    gesture_text = "Middle Finger"
+                    pyautogui.press(gesture_to_key[gesture_text])
                 elif is_thumb_up(hand_landmarks.landmark):
-                    gesture_text = "GOOD JOB"
-                    # use pyautogui or pydirectinput or keyboard
-                    # make all your custom function detector and send commands here
-                    pyautogui.press('3')
+                    gesture_text = "Thumb Up"
+                    pyautogui.press(gesture_to_key[gesture_text])
                 elif is_thumb_down(hand_landmarks.landmark):
-                    gesture_text = "BOOOOO"
-                    # use pyautogui or pydirectinput or keyboard
-                    # make all your custom function detector and send commands here
-                    pyautogui.press('4')
+                    gesture_text = "Thumb Down"
+                    pyautogui.press(gesture_to_key[gesture_text])
+                elif is_peace_sign(hand_landmarks.landmark):
+                    gesture_text = "Peace Sign"
+                    pyautogui.press(gesture_to_key[gesture_text])
+                elif is_ok_sign(hand_landmarks.landmark):
+                    gesture_text = "OK Sign"
+                    pyautogui.press(gesture_to_key[gesture_text])
+                elif is_fist(hand_landmarks.landmark):
+                    gesture_text = "Fist"
+                    pyautogui.press(gesture_to_key[gesture_text])
                 else:
                     gesture_text = keypoint_classifier_labels[hand_sign_id]
 
@@ -391,7 +472,6 @@ def logging_csv(number, mode, landmark_list, point_history_list):
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *point_history_list])
-    return
 
 
 def draw_landmarks(image, landmark_point):
