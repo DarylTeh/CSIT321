@@ -4,9 +4,13 @@ import argparse
 import itertools
 from collections import Counter
 from collections import deque
-import pyautogui
+import pydirectinput
+import pydirectinput
 import tkinter as tk
 from tkinter import ttk
+
+import time
+import asyncio
 
 import cv2 as cv
 import numpy as np
@@ -15,6 +19,17 @@ import mediapipe as mp
 from utils import CvFpsCalc
 from model import KeyPointClassifier
 from model import PointHistoryClassifier
+
+THROTTLE_TIME = 0
+last_key_press_time = 0
+
+async def press_key_throttled(key):
+    global last_key_press_time
+    current_time = time.time()
+    # Check if the time since the last keypress is greater than the throttle time.
+    if current_time - last_key_press_time >= THROTTLE_TIME:
+        pydirectinput.press(key)
+        last_key_press_time = current_time
 
 def is_thumb_up(landmarks):
     # Thumb up: Thumb straight, other fingers clenched
@@ -328,22 +343,16 @@ def main():
                 
                 if is_middle_finger_up(hand_landmarks.landmark):
                     gesture_text = "Middle Finger"
-                    pyautogui.press(gesture_to_key[gesture_text])
                 elif is_thumb_up(hand_landmarks.landmark):
                     gesture_text = "Thumb Up"
-                    pyautogui.press(gesture_to_key[gesture_text])
                 elif is_thumb_down(hand_landmarks.landmark):
                     gesture_text = "Thumb Down"
-                    pyautogui.press(gesture_to_key[gesture_text])
                 elif is_peace_sign(hand_landmarks.landmark):
                     gesture_text = "Peace Sign"
-                    pyautogui.press(gesture_to_key[gesture_text])
                 elif is_ok_sign(hand_landmarks.landmark):
                     gesture_text = "OK Sign"
-                    pyautogui.press(gesture_to_key[gesture_text])
                 elif is_fist(hand_landmarks.landmark):
                     gesture_text = "Fist"
-                    pyautogui.press(gesture_to_key[gesture_text])
                 else:
                     gesture_text = keypoint_classifier_labels[hand_sign_id]
 
@@ -353,10 +362,17 @@ def main():
                     debug_image,
                     brect,
                     handedness,
-                    # keypoint_classifier_labels[hand_sign_id], now we only use gesture_text.
                     gesture_text,
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
+
+                if (is_middle_finger_up(hand_landmarks.landmark) or
+                    is_thumb_up(hand_landmarks.landmark) or
+                    is_thumb_down(hand_landmarks.landmark) or
+                    is_peace_sign(hand_landmarks.landmark) or
+                    is_ok_sign(hand_landmarks.landmark) or
+                    is_fist(hand_landmarks.landmark)):
+                    asyncio.run(press_key_throttled(gesture_to_key[gesture_text]))
         else:
             point_history.append([0, 0])
 
