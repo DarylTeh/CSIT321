@@ -1,7 +1,7 @@
 opencv-python
-tensorflow
 scikit-learn
 matplotlib
 protobuf
 pyautogui
 mediapipe
+tensorflow
