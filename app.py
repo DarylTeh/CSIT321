@@ -269,7 +269,8 @@ def main():
         min_detection_confidence=min_detection_confidence,
         min_tracking_confidence=min_tracking_confidence,
     )
-
+    
+    # KeypointClassifier mainly run through all the data from keypoint_classifier.tflite to predict what is the class of the input data, output will be choosing the class with highest probability.
     keypoint_classifier = KeyPointClassifier()
 
     point_history_classifier = PointHistoryClassifier()
@@ -347,18 +348,35 @@ def main():
                 
                 if is_middle_finger_up(hand_landmarks.landmark):
                     gesture_text = "Middle Finger"
+                    print("Fuck youuuu")
                 elif is_thumb_up(hand_landmarks.landmark):
                     gesture_text = "Thumb Up"
+                    print("Thumb up")
                 elif is_thumb_down(hand_landmarks.landmark):
                     gesture_text = "Thumb Down"
+                    print("Thumb down")
+                    # print("TD Index finger middle : "+str(hand_landmarks.landmark[6].y))
+                    # print("TD Index finger tip : "+str(hand_landmarks.landmark[8].y))
+                    # print("TD Middle finger middle : "+str(hand_landmarks.landmark[10].y))
+                    # print("TD Middle finger tip : "+str(hand_landmarks.landmark[12].y))
+                    # print("TD Ring finger middle : "+str(hand_landmarks.landmark[14].y))
+                    # print("TD Ring finger tip : "+str(hand_landmarks.landmark[16].y))
+                    # print("TD Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
+                    # print("TD Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
+                    # print("TD distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
+                    # print("TD distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
                 elif is_peace_sign(hand_landmarks.landmark):
                     gesture_text = "Peace Sign"
+                    print("RIP")
                 elif is_ok_sign(hand_landmarks.landmark):
                     gesture_text = "OK Sign"
+                    print("Ogay")
                 elif is_fist(hand_landmarks.landmark):
                     gesture_text = "Fist"
+                    print("Bagelo")
                 else:
                     gesture_text = keypoint_classifier_labels[hand_sign_id]
+                    print("Unknown: "+gesture_text)
 
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
                 debug_image = draw_landmarks(debug_image, landmark_list)
@@ -369,6 +387,8 @@ def main():
                     gesture_text,
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
+                
+                print("gesture_text : "+gesture_text)
 
                 if (is_middle_finger_up(hand_landmarks.landmark) or
                     is_thumb_up(hand_landmarks.landmark) or
