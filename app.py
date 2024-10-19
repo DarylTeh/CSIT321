@@ -37,7 +37,7 @@ def is_thumb_up(landmarks):
     thumb_base = landmarks[1]
     
     # Check if thumb is straight up (x, y coordinate check based on the angle of thumb)
-    is_thumb_straight = thumb_tip.y < thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
+    is_thumb_straight = thumb_tip.y < thumb_base.y and (thumb_tip.x - thumb_base.x) < 0.1
     
     # Check if other fingers are clenched
     are_other_fingers_clenched = (
@@ -55,17 +55,27 @@ def is_thumb_down(landmarks):
     thumb_base = landmarks[1]
     
     # Check if thumb is straight down (x, y coordinate check based on the angle of thumb)
-    is_thumb_straight = thumb_tip.y > thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
+    # for most straight thumb in y axis, is around 0.08-0.12 (longest distance), x distance is around 0.04-0.08
+    # for most tilted thumb in y axis, is around 0.00 - 0.05, x distance is around 0.07 - 0.09
+    is_thumb_straight = isDistanceAccepted(thumb_tip.y, thumb_base.y, 0.15) and abs(thumb_tip.x - thumb_base.x) < 0.1
     
     # Check if other fingers are clenched
     are_other_fingers_clenched = (
-        landmarks[8].y > landmarks[6].y and  # Index finger clenched
-        landmarks[12].y > landmarks[10].y and  # Middle finger clenched
-        landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-        landmarks[20].y > landmarks[18].y    # Pinky clenched
+        # 0.1 should be okay, so far I see the distance between tip and base are all around 0.03 - 0.05
+        isDistanceAccepted(landmarks[8].y, landmarks[6].y, 0.1) and  # Index finger clenched
+        isDistanceAccepted(landmarks[12].y, landmarks[10].y, 0.1) and  # Middle finger clenched
+        isDistanceAccepted(landmarks[16].y, landmarks[14].y, 0.1) and  # Ring finger clenched
+        isDistanceAccepted(landmarks[20].y, landmarks[18].y, 0.1)  # Pinky clenched
     )
     
     return is_thumb_straight and are_other_fingers_clenched
+
+def isDistanceAccepted(pointOne, pointTwo, acceptedDistance):
+    distance = abs(pointOne - pointTwo)
+    # if its y axis, pointOne can be higher/lower than pointTwo by 0.5, if its x axis, pointOne can be left/right more than positionTwo by 0.5(give buffer, if not die die must be very accurate position also not friendly for user) 
+    if distance <= acceptedDistance:
+        return True
+    return False
 
 def is_middle_finger_up(landmarks):
     # Middle finger up: Middle finger raised, others clenched
@@ -265,7 +275,8 @@ def main():
         min_detection_confidence=min_detection_confidence,
         min_tracking_confidence=min_tracking_confidence,
     )
-
+    
+    # KeypointClassifier mainly run through all the data from keypoint_classifier.tflite to predict what is the class of the input data, output will be choosing the class with highest probability.
     keypoint_classifier = KeyPointClassifier()
 
     point_history_classifier = PointHistoryClassifier()
@@ -343,18 +354,35 @@ def main():
                 
                 if is_middle_finger_up(hand_landmarks.landmark):
                     gesture_text = "Middle Finger"
+                    print("Fuck youuuu")
                 elif is_thumb_up(hand_landmarks.landmark):
                     gesture_text = "Thumb Up"
+                    print("Thumb up")
                 elif is_thumb_down(hand_landmarks.landmark):
                     gesture_text = "Thumb Down"
+                    print("Thumb down")
+                    # print("TD Index finger middle : "+str(hand_landmarks.landmark[6].y))
+                    # print("TD Index finger tip : "+str(hand_landmarks.landmark[8].y))
+                    # print("TD Middle finger middle : "+str(hand_landmarks.landmark[10].y))
+                    # print("TD Middle finger tip : "+str(hand_landmarks.landmark[12].y))
+                    # print("TD Ring finger middle : "+str(hand_landmarks.landmark[14].y))
+                    # print("TD Ring finger tip : "+str(hand_landmarks.landmark[16].y))
+                    # print("TD Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
+                    # print("TD Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
+                    # print("TD distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
+                    # print("TD distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
                 elif is_peace_sign(hand_landmarks.landmark):
                     gesture_text = "Peace Sign"
+                    print("RIP")
                 elif is_ok_sign(hand_landmarks.landmark):
                     gesture_text = "OK Sign"
+                    print("Ogay")
                 elif is_fist(hand_landmarks.landmark):
                     gesture_text = "Fist"
+                    print("Bagelo")
                 else:
                     gesture_text = keypoint_classifier_labels[hand_sign_id]
+                    print("Unknown: "+gesture_text)
 
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
                 debug_image = draw_landmarks(debug_image, landmark_list)
@@ -365,6 +393,8 @@ def main():
                     gesture_text,
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
+                
+                print("gesture_text : "+gesture_text)
 
                 if (is_middle_finger_up(hand_landmarks.landmark) or
                     is_thumb_up(hand_landmarks.landmark) or
