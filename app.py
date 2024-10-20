@@ -355,16 +355,16 @@ def main():
                 elif is_thumb_down(hand_landmarks.landmark):
                     gesture_text = "Thumb Down"
                     print("Thumb down")
-                    # print("TD Index finger middle : "+str(hand_landmarks.landmark[6].y))
-                    # print("TD Index finger tip : "+str(hand_landmarks.landmark[8].y))
-                    # print("TD Middle finger middle : "+str(hand_landmarks.landmark[10].y))
-                    # print("TD Middle finger tip : "+str(hand_landmarks.landmark[12].y))
-                    # print("TD Ring finger middle : "+str(hand_landmarks.landmark[14].y))
-                    # print("TD Ring finger tip : "+str(hand_landmarks.landmark[16].y))
-                    # print("TD Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
-                    # print("TD Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
-                    # print("TD distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
-                    # print("TD distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
+                    print("TD Index finger middle : "+str(hand_landmarks.landmark[6].y))
+                    print("TD Index finger tip : "+str(hand_landmarks.landmark[8].y))
+                    print("TD Middle finger middle : "+str(hand_landmarks.landmark[10].y))
+                    print("TD Middle finger tip : "+str(hand_landmarks.landmark[12].y))
+                    print("TD Ring finger middle : "+str(hand_landmarks.landmark[14].y))
+                    print("TD Ring finger tip : "+str(hand_landmarks.landmark[16].y))
+                    print("TD Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
+                    print("TD Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
+                    print("TD distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
+                    print("TD distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
                 elif is_peace_sign(hand_landmarks.landmark):
                     gesture_text = "Peace Sign"
                     print("RIP")
