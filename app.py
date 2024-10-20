@@ -57,18 +57,20 @@ def is_thumb_down(landmarks):
     # Check if thumb is straight down (x, y coordinate check based on the angle of thumb)
     # for most straight thumb in y axis, is around 0.08-0.12 (longest distance), x distance is around 0.04-0.08
     # for most tilted thumb in y axis, is around 0.00 - 0.05, x distance is around 0.07 - 0.09
-    is_thumb_straight = isDistanceAccepted(thumb_tip.y, thumb_base.y, 0.15) and abs(thumb_tip.x - thumb_base.x) < 0.1
+    is_thumb_straight = isDistanceAccepted(thumb_tip.y, thumb_base.y, 0.2) and abs(thumb_tip.x - thumb_base.x) < 0.07
     
     # Check if other fingers are clenched
     are_other_fingers_clenched = (
         # 0.1 should be okay, so far I see the distance between tip and base are all around 0.03 - 0.05
-        isDistanceAccepted(landmarks[8].y, landmarks[6].y, 0.1) and  # Index finger clenched
-        isDistanceAccepted(landmarks[12].y, landmarks[10].y, 0.1) and  # Middle finger clenched
-        isDistanceAccepted(landmarks[16].y, landmarks[14].y, 0.1) and  # Ring finger clenched
-        isDistanceAccepted(landmarks[20].y, landmarks[18].y, 0.1)  # Pinky clenched
+        isDistanceAccepted(landmarks[8].y, landmarks[6].y, 0.05) and  # Index finger clenched
+        isDistanceAccepted(landmarks[12].y, landmarks[10].y, 0.05) and  # Middle finger clenched
+        isDistanceAccepted(landmarks[16].y, landmarks[14].y, 0.05) and  # Ring finger clenched
+        isDistanceAccepted(landmarks[20].y, landmarks[18].y, 0.05)  # Pinky clenched
     )
     
-    return is_thumb_straight and are_other_fingers_clenched
+    is_thumb_facing_downwards = thumb_tip.y > landmarks[18].y and thumb_tip.y > landmarks[14].y and thumb_tip.y > landmarks[10].y and thumb_tip.y > landmarks[6].y
+    
+    return is_thumb_straight and are_other_fingers_clenched and is_thumb_facing_downwards
 
 def isDistanceAccepted(pointOne, pointTwo, acceptedDistance):
     distance = abs(pointOne - pointTwo)
@@ -361,16 +363,16 @@ def main():
                 elif is_thumb_down(hand_landmarks.landmark):
                     gesture_text = "Thumb Down"
                     print("Thumb down")
-                    # print("TD Index finger middle : "+str(hand_landmarks.landmark[6].y))
-                    # print("TD Index finger tip : "+str(hand_landmarks.landmark[8].y))
-                    # print("TD Middle finger middle : "+str(hand_landmarks.landmark[10].y))
-                    # print("TD Middle finger tip : "+str(hand_landmarks.landmark[12].y))
-                    # print("TD Ring finger middle : "+str(hand_landmarks.landmark[14].y))
-                    # print("TD Ring finger tip : "+str(hand_landmarks.landmark[16].y))
-                    # print("TD Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
-                    # print("TD Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
-                    # print("TD distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
-                    # print("TD distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
+                    print("TD Index finger middle : "+str(hand_landmarks.landmark[6].y))
+                    print("TD Index finger tip : "+str(hand_landmarks.landmark[8].y))
+                    print("TD Middle finger middle : "+str(hand_landmarks.landmark[10].y))
+                    print("TD Middle finger tip : "+str(hand_landmarks.landmark[12].y))
+                    print("TD Ring finger middle : "+str(hand_landmarks.landmark[14].y))
+                    print("TD Ring finger tip : "+str(hand_landmarks.landmark[16].y))
+                    print("TD Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
+                    print("TD Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
+                    print("TD distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
+                    print("TD distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
                 elif is_peace_sign(hand_landmarks.landmark):
                     gesture_text = "Peace Sign"
                     print("RIP")
