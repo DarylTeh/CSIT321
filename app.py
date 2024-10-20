@@ -4,8 +4,8 @@ import argparse
 import itertools
 from collections import Counter
 from collections import deque
-import pydirectinput
-import pydirectinput
+import win32api
+import win32con
 import tkinter as tk
 from tkinter import ttk
 
@@ -20,15 +20,18 @@ from utils import CvFpsCalc
 from model import KeyPointClassifier
 from model import PointHistoryClassifier
 
-THROTTLE_TIME = 0
+THROTTLE_TIME = 1
 last_key_press_time = 0
 
-async def press_key_throttled(key):
+async def press_key_throttled(hex_key_code):
     global last_key_press_time
     current_time = time.time()
     # Check if the time since the last keypress is greater than the throttle time.
     if current_time - last_key_press_time >= THROTTLE_TIME:
-        pydirectinput.press(key)
+        win32api.keybd_event(hex_key_code, 0, 0, 0)
+        time.sleep(0.2)  # Short delay to ensure the key press is registered
+        # Simulates releasing the key
+        win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
         last_key_press_time = current_time
 
 def is_thumb_up(landmarks):
@@ -174,8 +177,10 @@ def main():
 
     # Create a function to handle keypress events
     def record_key(event, gesture, label):
-        gesture_to_key[gesture] = event.keysym
-        label.config(text=f"{gesture}: {event.keysym}", foreground="green")
+        # Store the hexadecimal code of the key using ord()
+        vk_code = win32api.VkKeyScan(event.char)
+        gesture_to_key[gesture] = vk_code
+        label.config(text=f"{gesture}: {vk_code}", foreground="green")
         root.unbind("<Key>")
 
     # Define a function to enable key recording
@@ -186,9 +191,8 @@ def main():
     # Define a function that will be called when the user clicks "Proceed"
     def proceed():
         print("Gesture to key mapping:")
-        # print(str(gesture_to_key[gesture]))
-        # for gesture, key in gesture_to_key.items():
-        #     print(f"{gesture}: {key}")
+        for gesture, hex_code in gesture_to_key.items():
+            print(f"{gesture}: {hex_code}")
         # Here you can add any additional actions for when the proceed button is pressed
         root.quit()
 
