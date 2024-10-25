@@ -81,11 +81,12 @@ def printDistanceBetweenLandmarks(landmarks):
 
 # IMPORTANT: ONLY ONE GESTURE call this function at any point of time.
 # Once close or any gesture detected, call this function to collect all x and y distances of each finger 
-def getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(landmarks, thumbWidthRange, thumbWidthRange_containers, thumbHeightRange, thumbHeightRange_containers, 
-                                                           indexWidthRange, indexWidthRange_containers, indexHeightRange, indexHeightRange_containers, 
-                                                           middleWidthRange, middleWidthRange_containers, middleHeightRange, middleHeightRange_containers,
-                                                           ringWidthRange, ringWidthRange_containers,ringHeightRange, ringHeightRange_containers, 
-                                                           pinkyWidthRange, pinkyWidthRange_containers, pinkyHeightRange, pinkyHeightRange_containers):
+def getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(
+    landmarks, thumbWidthRange, thumbWidthRange_containers, thumbHeightRange, thumbHeightRange_containers, 
+    indexWidthRange, indexWidthRange_containers, indexHeightRange, indexHeightRange_containers, 
+    middleWidthRange, middleWidthRange_containers, middleHeightRange, middleHeightRange_containers,
+    ringWidthRange, ringWidthRange_containers,ringHeightRange, ringHeightRange_containers, 
+    pinkyWidthRange, pinkyWidthRange_containers, pinkyHeightRange, pinkyHeightRange_containers):
     
     thumb_tip = landmarks[4]
     thumb_base = landmarks[1]
@@ -122,13 +123,6 @@ def getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(landmarks, thumbWidt
 
 # once close gesture detected, call this function to check width distance and grouping for each finger
 def getLandmarkWidthDistanceGroup(landmark1, landmark2, widthRanges, widthRange_container):
-    # thumb_base = landmarks[1]
-    # thumb_tip = landmarks[4]
-    
-    # following three lines need to be outer scope, cannot keep within this function scope
-    # ranges = [(i/1000, (i+1)/1000) for i in range(1, 100)]
-    # ranges.insert(0, (0, 0.001))
-    # range_containers = defaultdict(list)
     
     width_distance = abs(landmark1.x - landmark2.x)
     
@@ -149,14 +143,15 @@ def categorisePoint(distance, ranges, range_containers):
             break
 
 def printAndRemoveMaximumDistanceGroup(range_container):
-    maxRange = getMaximumDistanceGroup(range_container)
-    print("1st champion range : "+str(maxRange))
+    total = len(range_container)
+    maxRange, maxCount = getMaximumDistanceGroup(range_container)
+    print("1st champion range : "+str(maxRange) + ", [ " + str(maxCount) + "/"+ str(total) + " ]")
     
     if maxRange is not None:
         del range_container[maxRange]
     
-    secondMaxRange = getMaximumDistanceGroup(range_container)
-    print("2nd max range : "+str(secondMaxRange))
+    secondMaxRange, secondMaxCount = getMaximumDistanceGroup(range_container)
+    print("2nd max range : "+str(secondMaxRange) + ", [ " + str(secondMaxCount) + "/"+ str(total) + " ]")
         
         
 def getMaximumDistanceGroup(range_container):
@@ -168,7 +163,7 @@ def getMaximumDistanceGroup(range_container):
             maxCount = len(value)
             maxRange = key
     
-    return maxRange
+    return maxRange, maxCount
     
     
 def is_thumb_up(landmarks):
@@ -194,9 +189,6 @@ def is_thumb_down(landmarks):
     thumb_tip = landmarks[4]
     thumb_base = landmarks[1]
     
-    # Check if thumb is straight down (x, y coordinate check based on the angle of thumb)
-    # for most straight thumb in y axis, is around 0.08-0.12 (longest distance), x distance is around 0.04-0.08
-    # for most tilted thumb in y axis, is around 0.00 - 0.05, x distance is around 0.07 - 0.09
     is_thumb_straight = isWithinBufferRange(thumb_tip.y, thumb_base.y, 0.2) and abs(thumb_tip.x - thumb_base.x) < 0.07
     
     # Check if other fingers are clenched
@@ -330,44 +322,122 @@ def main():
     gestures = ["Middle Finger", "Thumb Up", "Thumb Down", "Peace Sign", "OK Sign", "Fist"]
     
     # thumb
-    thumbWidthRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    thumbWidthRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
     thumbWidthRange.insert(0, (0, 0.001))
     thumbWidthRange_containers = defaultdict(list)
-    thumbHeightRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    thumbHeightRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
     thumbHeightRange.insert(0, (0, 0.001))
     thumbHeightRange_containers = defaultdict(list)
 
     # index finger
-    indexWidthRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    indexWidthRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
     indexWidthRange.insert(0, (0, 0.001))
     indexWidthRange_containers = defaultdict(list)
-    indexHeightRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    indexHeightRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
     indexHeightRange.insert(0, (0, 0.001))
     indexHeightRange_containers = defaultdict(list)
 
     # middle finger
-    middleWidthRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    middleWidthRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
     middleWidthRange.insert(0, (0, 0.001))
     middleWidthRange_containers = defaultdict(list)
-    middleHeightRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    middleHeightRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
     middleHeightRange.insert(0, (0, 0.001))
     middleHeightRange_containers = defaultdict(list)
 
     # ring finger
-    ringWidthRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    ringWidthRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
     ringWidthRange.insert(0, (0, 0.001))
     ringWidthRange_containers = defaultdict(list)
-    ringHeightRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    ringHeightRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
     ringHeightRange.insert(0, (0, 0.001))
     ringHeightRange_containers = defaultdict(list)
 
     # pinky finger
-    pinkyWidthRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    pinkyWidthRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
     pinkyWidthRange.insert(0, (0, 0.001))
     pinkyWidthRange_containers = defaultdict(list)
-    pinkyHeightRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    pinkyHeightRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
     pinkyHeightRange.insert(0, (0, 0.001))
     pinkyHeightRange_containers = defaultdict(list)
+    
+    # thumb to index finger
+    thumbToIndexTipWidthRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
+    thumbToIndexTipWidthRange.insert(0, (0, 0.001))
+    thumbToIndexTipWidthRange_containers = defaultdict(list)
+    thumbToIndexTipHeightRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
+    thumbToIndexTipHeightRange.insert(0, (0, 0.001))
+    thumbToIndexTipHeightRange_containers = defaultdict(list)
+    
+    # index to middle finger
+    indexToMiddleTipWidthRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
+    indexToMiddleTipWidthRange.insert(0, (0, 0.001))
+    indexToMiddleTipWidthRange_containers = defaultdict(list)
+    indexToMiddleTipHeightRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
+    indexToMiddleTipHeightRange.insert(0, (0, 0.001))
+    indexToMiddleTipHeightRange_containers = defaultdict(list)
+    
+    # middle to ring finger
+    middleToRingTipWidthRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
+    middleToRingTipWidthRange.insert(0, (0, 0.001))
+    middleToRingTipWidthRange_containers = defaultdict(list)
+    middleToRingTipHeightRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
+    middleToRingTipHeightRange.insert(0, (0, 0.001))
+    middleToRingTipHeightRange_containers = defaultdict(list)
+    
+    # ring to pinky finger
+    ringToPinkyTipWidthRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
+    ringToPinkyTipWidthRange.insert(0, (0, 0.001))
+    ringToPinkyTipWidthRange_containers = defaultdict(list)
+    ringToPinkyTipHeightRange = [(i/5000, (i+1)/5000) for i in range(1, 100)]
+    ringToPinkyTipHeightRange.insert(0, (0, 0.001))
+    ringToPinkyTipHeightRange_containers = defaultdict(list)
+    
+    def printHighestDistanceGroupingStatistic():
+        print("1st and 2nd max group for thumb width")
+        printAndRemoveMaximumDistanceGroup(thumbWidthRange_containers)
+        print("1st and 2nd max group for thumb height")
+        printAndRemoveMaximumDistanceGroup(thumbHeightRange_containers)
+                    
+        print("1st and 2nd max group for index width")
+        printAndRemoveMaximumDistanceGroup(indexWidthRange_containers)
+        print("1st and 2nd max group for thumb height")
+        printAndRemoveMaximumDistanceGroup(indexHeightRange_containers)
+                    
+        print("1st and 2nd max group for middle width")
+        printAndRemoveMaximumDistanceGroup(middleWidthRange_containers)
+        print("1st and 2nd max group for middle height")
+        printAndRemoveMaximumDistanceGroup(middleHeightRange_containers)
+                    
+        print("1st and 2nd max group for ring width")
+        printAndRemoveMaximumDistanceGroup(ringWidthRange_containers)
+        print("1st and 2nd max group for ring height")
+        printAndRemoveMaximumDistanceGroup( ringWidthRange_containers)
+                    
+        print("1st and 2nd max group for pinky width")
+        printAndRemoveMaximumDistanceGroup(pinkyWidthRange_containers)
+        print("1st and 2nd max group for pinky height")
+        printAndRemoveMaximumDistanceGroup(pinkyHeightRange_containers)
+        
+        print("1st and 2nd max group for thumb to index tip width")
+        printAndRemoveMaximumDistanceGroup(thumbToIndexTipWidthRange_containers)
+        print("1st and 2nd max group for thumb to index tip height")
+        printAndRemoveMaximumDistanceGroup(thumbToIndexTipHeightRange_containers)
+                    
+        print("1st and 2nd max group for index to middle tip width")
+        printAndRemoveMaximumDistanceGroup(indexToMiddleTipWidthRange_containers)
+        print("1st and 2nd max group for index to middle tip height")
+        printAndRemoveMaximumDistanceGroup(indexToMiddleTipHeightRange_containers)
+                    
+        print("1st and 2nd max group for middle to ring tip width")
+        printAndRemoveMaximumDistanceGroup(middleToRingTipWidthRange_containers)
+        print("1st and 2nd max group for middle to ring tip height")
+        printAndRemoveMaximumDistanceGroup(middleToRingTipHeightRange_containers)
+                    
+        print("1st and 2nd max group for ring to pinky tip width")
+        printAndRemoveMaximumDistanceGroup(ringToPinkyTipWidthRange_containers)
+        print("1st and 2nd max group for ring top pinky tip height")
+        printAndRemoveMaximumDistanceGroup(ringToPinkyTipHeightRange_containers)
 
     # Create a function to handle keypress events
     def record_key(event, gesture, label):
@@ -503,31 +573,7 @@ def main():
         if key == 27:  # ESC
             
             #  for now checking for thumbs up, please at least detect one thumbs up before esc
-            
-            print("1st and 2nd max group for thumb width")
-            printAndRemoveMaximumDistanceGroup(thumbWidthRange_containers)
-            print("1st and 2nd max group for thumb height")
-            printAndRemoveMaximumDistanceGroup(thumbHeightRange_containers)
-                    
-            print("1st and 2nd max group for index width")
-            printAndRemoveMaximumDistanceGroup(indexWidthRange_containers)
-            print("1st and 2nd max group for thumb height")
-            printAndRemoveMaximumDistanceGroup(indexHeightRange_containers)
-                    
-            print("1st and 2nd max group for middle width")
-            printAndRemoveMaximumDistanceGroup(middleWidthRange_containers)
-            print("1st and 2nd max group for middle height")
-            printAndRemoveMaximumDistanceGroup(middleHeightRange_containers)
-                    
-            print("1st and 2nd max group for ring width")
-            printAndRemoveMaximumDistanceGroup(ringWidthRange_containers)
-            print("1st and 2nd max group for ring height")
-            printAndRemoveMaximumDistanceGroup( ringWidthRange_containers)
-                    
-            print("1st and 2nd max group for pinky width")
-            printAndRemoveMaximumDistanceGroup(pinkyWidthRange_containers)
-            print("1st and 2nd max group for pinky height")
-            printAndRemoveMaximumDistanceGroup(pinkyHeightRange_containers)
+            printHighestDistanceGroupingStatistic()
             
             break
         number, mode = select_mode(key, mode)
