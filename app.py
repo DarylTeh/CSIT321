@@ -174,6 +174,46 @@ def main():
 
     # Define the list of gestures
     gestures = ["Middle Finger", "Thumb Up", "Thumb Down", "Peace Sign", "OK Sign", "Fist"]
+    
+    # thumb
+    thumbWidthRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    thumbWidthRange.insert(0, (0, 0.001))
+    thumbWidthRange_containers = defaultdict(list)
+    thumbHeightRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    thumbHeightRange.insert(0, (0, 0.001))
+    thumbHeightRange_containers = defaultdict(list)
+
+    # index finger
+    indexWidthRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    indexWidthRange.insert(0, (0, 0.001))
+    indexWidthRange_containers = defaultdict(list)
+    indexHeightRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    indexHeightRange.insert(0, (0, 0.001))
+    indexHeightRange_containers = defaultdict(list)
+
+    # middle finger
+    middleWidthRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    middleWidthRange.insert(0, (0, 0.001))
+    middleWidthRange_containers = defaultdict(list)
+    middleHeightRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    middleHeightRange.insert(0, (0, 0.001))
+    middleHeightRange_containers = defaultdict(list)
+
+    # ring finger
+    ringWidthRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    ringWidthRange.insert(0, (0, 0.001))
+    ringWidthRange_containers = defaultdict(list)
+    ringHeightRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    ringHeightRange.insert(0, (0, 0.001))
+    ringHeightRange_containers = defaultdict(list)
+
+    # pinky finger
+    pinkyWidthRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    pinkyWidthRange.insert(0, (0, 0.001))
+    pinkyWidthRange_containers = defaultdict(list)
+    pinkyHeightRange = [(i/1000, (i+1)/1000) for i in range(1, 100)]
+    pinkyHeightRange.insert(0, (0, 0.001))
+    pinkyHeightRange_containers = defaultdict(list)
 
     # Create a function to handle keypress events
     def record_key(event, gesture, label):
@@ -298,12 +338,44 @@ def main():
     finger_gesture_history = deque(maxlen=history_length)
 
     mode = 0
+    
+    thumbDownCount = 0
+    thumbUpCount = 0
+    closeCount = 0
 
     while True:
         fps = cvFpsCalc.get()
 
         key = cv.waitKey(10)
         if key == 27:  # ESC
+            
+            #  for now checking for thumbs up, please at least detect one thumbs up before esc
+            
+            print("1st and 2nd max group for thumb width")
+            printAndRemoveMaximumDistanceGroup(thumbWidthRange_containers)
+            print("1st and 2nd max group for thumb height")
+            printAndRemoveMaximumDistanceGroup(thumbHeightRange_containers)
+                    
+            print("1st and 2nd max group for index width")
+            printAndRemoveMaximumDistanceGroup(indexWidthRange_containers)
+            print("1st and 2nd max group for thumb height")
+            printAndRemoveMaximumDistanceGroup(indexHeightRange_containers)
+                    
+            print("1st and 2nd max group for middle width")
+            printAndRemoveMaximumDistanceGroup(middleWidthRange_containers)
+            print("1st and 2nd max group for middle height")
+            printAndRemoveMaximumDistanceGroup(middleHeightRange_containers)
+                    
+            print("1st and 2nd max group for ring width")
+            printAndRemoveMaximumDistanceGroup(ringWidthRange_containers)
+            print("1st and 2nd max group for ring height")
+            printAndRemoveMaximumDistanceGroup( ringWidthRange_containers)
+                    
+            print("1st and 2nd max group for pinky width")
+            printAndRemoveMaximumDistanceGroup(pinkyWidthRange_containers)
+            print("1st and 2nd max group for pinky height")
+            printAndRemoveMaximumDistanceGroup(pinkyHeightRange_containers)
+            
             break
         number, mode = select_mode(key, mode)
 
@@ -320,7 +392,7 @@ def main():
         results = hands.process(image)
         image.flags.writeable = True
 
-# multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
+        # multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
         if results.multi_hand_landmarks is not None:
             for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
                                                   results.multi_handedness):
@@ -328,16 +400,16 @@ def main():
                 # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
                 landmark_list = calc_landmark_list(debug_image, hand_landmarks)
 
-# pre_process_landmark() will normalise a list of landmarks
+                # pre_process_landmark() will normalise a list of landmarks
                 pre_processed_landmark_list = pre_process_landmark(
                     landmark_list)
-# pre_process_point_history will normalise a list of point history
+                # pre_process_point_history will normalise a list of point history
                 pre_processed_point_history_list = pre_process_point_history(
                     debug_image, point_history)
                 logging_csv(number, mode, pre_processed_landmark_list,
                             pre_processed_point_history_list)
 
-# keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
+                # keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
                 hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
                 if hand_sign_id == 2:
                     point_history.append(landmark_list[8])
@@ -361,21 +433,19 @@ def main():
                 elif is_thumb_up(hand_landmarks.landmark):
                     gesture_text = "Thumb Up"
                     print("Thumb up")
+                    thumbUpCount += 1
                     printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark, thumbWidthRange, thumbWidthRange_containers, thumbHeightRange, thumbHeightRange_containers, 
+                                                           indexWidthRange, indexWidthRange_containers, indexHeightRange, indexHeightRange_containers, 
+                                                           middleWidthRange, middleWidthRange_containers, middleHeightRange, middleHeightRange_containers,
+                                                           ringWidthRange, ringWidthRange_containers,ringHeightRange, ringHeightRange_containers, 
+                                                           pinkyWidthRange, pinkyWidthRange_containers, pinkyHeightRange, pinkyHeightRange_containers)
+                    
                 elif is_thumb_down(hand_landmarks.landmark):
                     gesture_text = "Thumb Down"
+                    thumbDownCount += 1
                     print("Thumb down")
                     # printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                    # print("TD Index finger middle : "+str(hand_landmarks.landmark[6].y))
-                    # print("TD Index finger tip : "+str(hand_landmarks.landmark[8].y))
-                    # print("TD Middle finger middle : "+str(hand_landmarks.landmark[10].y))
-                    # print("TD Middle finger tip : "+str(hand_landmarks.landmark[12].y))
-                    # print("TD Ring finger middle : "+str(hand_landmarks.landmark[14].y))
-                    # print("TD Ring finger tip : "+str(hand_landmarks.landmark[16].y))
-                    # print("TD Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
-                    # print("TD Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
-                    # print("TD distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
-                    # print("TD distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
                 elif is_peace_sign(hand_landmarks.landmark):
                     gesture_text = "Peace Sign"
                     print("RIP")
@@ -390,36 +460,13 @@ def main():
                     # printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 elif is_close(hand_landmarks.landmark):
                     gesture_text = "Close"
+                    closeCount += 1
                     print("Close")
                     printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                    # print("Close thumb base : "+str(hand_landmarks.landmark[1].y))
-                    # print("Close thumb tip : "+str(hand_landmarks.landmark[4].y))
-                    # print("Close Index finger middle : "+str(hand_landmarks.landmark[6].y))
-                    # print("Close Index finger tip : "+str(hand_landmarks.landmark[8].y))
-                    # print("Close Middle finger middle : "+str(hand_landmarks.landmark[10].y))
-                    # print("Close Middle finger tip : "+str(hand_landmarks.landmark[12].y))
-                    # print("Close Ring finger middle : "+str(hand_landmarks.landmark[14].y))
-                    # print("Close Ring finger tip : "+str(hand_landmarks.landmark[16].y))
-                    # print("Close Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
-                    # print("Close Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
-                    # print("Close distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
-                    # print("Close distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
                 else:
                     gesture_text = keypoint_classifier_labels[hand_sign_id]
                     print("Unknown: "+gesture_text)
                     printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                    # print("Unknown thumb middle : "+str(hand_landmarks.landmark[2].y))
-                    # print("Unknown thumb tip : "+str(hand_landmarks.landmark[4].y))
-                    # print("Unknown Index finger middle : "+str(hand_landmarks.landmark[6].y))
-                    # print("Unknown Index finger tip : "+str(hand_landmarks.landmark[8].y))
-                    # print("Unknown Middle finger middle : "+str(hand_landmarks.landmark[10].y))
-                    # print("Unknown Middle finger tip : "+str(hand_landmarks.landmark[12].y))
-                    # print("Unknown Ring finger middle : "+str(hand_landmarks.landmark[14].y))
-                    # print("Unknown Ring finger tip : "+str(hand_landmarks.landmark[16].y))
-                    # print("Unknown Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
-                    # print("Unknown Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
-                    # print("Unknown distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
-                    # print("Unknown distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
 
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
                 debug_image = draw_landmarks(debug_image, landmark_list)
