@@ -292,7 +292,9 @@ def main():
     cvFpsCalc = CvFpsCalc(buffer_len=10)
 
     history_length = 16
+    # point_history store most recent 16 points
     point_history = deque(maxlen=history_length)
+    #  finger_gesture_history store most recent 16 gestures 
     finger_gesture_history = deque(maxlen=history_length)
 
     mode = 0
@@ -305,6 +307,7 @@ def main():
             break
         number, mode = select_mode(key, mode)
 
+        # means if the camera capture something, then ret is True. Else ret is False.
         ret, image = cap.read()
         if not ret:
             break
@@ -317,19 +320,24 @@ def main():
         results = hands.process(image)
         image.flags.writeable = True
 
+# multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
         if results.multi_hand_landmarks is not None:
             for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
                                                   results.multi_handedness):
                 brect = calc_bounding_rect(debug_image, hand_landmarks)
+                # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
                 landmark_list = calc_landmark_list(debug_image, hand_landmarks)
 
+# pre_process_landmark() will normalise a list of landmarks
                 pre_processed_landmark_list = pre_process_landmark(
                     landmark_list)
+# pre_process_point_history will normalise a list of point history
                 pre_processed_point_history_list = pre_process_point_history(
                     debug_image, point_history)
                 logging_csv(number, mode, pre_processed_landmark_list,
                             pre_processed_point_history_list)
 
+# keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
                 hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
                 if hand_sign_id == 2:
                     point_history.append(landmark_list[8])
@@ -349,34 +357,69 @@ def main():
                 if is_middle_finger_up(hand_landmarks.landmark):
                     gesture_text = "Middle Finger"
                     print("Fuck youuuu")
+                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 elif is_thumb_up(hand_landmarks.landmark):
                     gesture_text = "Thumb Up"
                     print("Thumb up")
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 elif is_thumb_down(hand_landmarks.landmark):
                     gesture_text = "Thumb Down"
                     print("Thumb down")
-                    print("TD Index finger middle : "+str(hand_landmarks.landmark[6].y))
-                    print("TD Index finger tip : "+str(hand_landmarks.landmark[8].y))
-                    print("TD Middle finger middle : "+str(hand_landmarks.landmark[10].y))
-                    print("TD Middle finger tip : "+str(hand_landmarks.landmark[12].y))
-                    print("TD Ring finger middle : "+str(hand_landmarks.landmark[14].y))
-                    print("TD Ring finger tip : "+str(hand_landmarks.landmark[16].y))
-                    print("TD Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
-                    print("TD Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
-                    print("TD distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
-                    print("TD distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
+                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    # print("TD Index finger middle : "+str(hand_landmarks.landmark[6].y))
+                    # print("TD Index finger tip : "+str(hand_landmarks.landmark[8].y))
+                    # print("TD Middle finger middle : "+str(hand_landmarks.landmark[10].y))
+                    # print("TD Middle finger tip : "+str(hand_landmarks.landmark[12].y))
+                    # print("TD Ring finger middle : "+str(hand_landmarks.landmark[14].y))
+                    # print("TD Ring finger tip : "+str(hand_landmarks.landmark[16].y))
+                    # print("TD Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
+                    # print("TD Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
+                    # print("TD distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
+                    # print("TD distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
                 elif is_peace_sign(hand_landmarks.landmark):
                     gesture_text = "Peace Sign"
                     print("RIP")
+                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 elif is_ok_sign(hand_landmarks.landmark):
                     gesture_text = "OK Sign"
                     print("Ogay")
+                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 elif is_fist(hand_landmarks.landmark):
                     gesture_text = "Fist"
                     print("Bagelo")
+                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                elif is_close(hand_landmarks.landmark):
+                    gesture_text = "Close"
+                    print("Close")
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    # print("Close thumb base : "+str(hand_landmarks.landmark[1].y))
+                    # print("Close thumb tip : "+str(hand_landmarks.landmark[4].y))
+                    # print("Close Index finger middle : "+str(hand_landmarks.landmark[6].y))
+                    # print("Close Index finger tip : "+str(hand_landmarks.landmark[8].y))
+                    # print("Close Middle finger middle : "+str(hand_landmarks.landmark[10].y))
+                    # print("Close Middle finger tip : "+str(hand_landmarks.landmark[12].y))
+                    # print("Close Ring finger middle : "+str(hand_landmarks.landmark[14].y))
+                    # print("Close Ring finger tip : "+str(hand_landmarks.landmark[16].y))
+                    # print("Close Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
+                    # print("Close Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
+                    # print("Close distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
+                    # print("Close distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
                 else:
                     gesture_text = keypoint_classifier_labels[hand_sign_id]
                     print("Unknown: "+gesture_text)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    # print("Unknown thumb middle : "+str(hand_landmarks.landmark[2].y))
+                    # print("Unknown thumb tip : "+str(hand_landmarks.landmark[4].y))
+                    # print("Unknown Index finger middle : "+str(hand_landmarks.landmark[6].y))
+                    # print("Unknown Index finger tip : "+str(hand_landmarks.landmark[8].y))
+                    # print("Unknown Middle finger middle : "+str(hand_landmarks.landmark[10].y))
+                    # print("Unknown Middle finger tip : "+str(hand_landmarks.landmark[12].y))
+                    # print("Unknown Ring finger middle : "+str(hand_landmarks.landmark[14].y))
+                    # print("Unknown Ring finger tip : "+str(hand_landmarks.landmark[16].y))
+                    # print("Unknown Pinky finger middle : "+str(hand_landmarks.landmark[18].y))
+                    # print("Unknown Pinky finger tip : "+str(hand_landmarks.landmark[20].y))
+                    # print("Unknown distance between thumb tip and thumb base x axis: "+str(abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[1].x)))
+                    # print("Unknown distance between thumb tip and thumb base y axis: "+str(abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[1].y)))
 
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
                 debug_image = draw_landmarks(debug_image, landmark_list)
@@ -388,7 +431,7 @@ def main():
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
                 
-                print("gesture_text : "+gesture_text)
+                # print("gesture_text : "+gesture_text)
 
                 if (is_middle_finger_up(hand_landmarks.landmark) or
                     is_thumb_up(hand_landmarks.landmark) or
