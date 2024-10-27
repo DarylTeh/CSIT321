@@ -177,9 +177,10 @@ def main():
     thumbUpAlgo = DistanceGroup(5000)
     thumbDownAlgo = DistanceGroup(5000)
     closeAlgo = DistanceGroup(5000)
+    okayAlgo = DistanceGroup(5000)
 
     # Define the list of gestures
-    gestures = ["Middle Finger", "Thumb Up", "Thumb Down", "Peace Sign", "OK Sign", "Fist"]
+    gestures = ["Middle Finger", "Thumb Up", "Thumb Down", "Peace Sign", "OK Sign", "Fist", "Close"]
     
     # Create a function to handle keypress events
     def record_key(event, gesture, label):
@@ -308,6 +309,7 @@ def main():
     thumbDownCount = 0
     thumbUpCount = 0
     closeCount = 0
+    okayCount = 0
 
     while True:
         fps = cvFpsCalc.get()
@@ -321,6 +323,8 @@ def main():
             thumbUpAlgo.printHighestDistanceGroupingStatistic()
             print("Total Close Count : "+str(closeCount))
             closeAlgo.printHighestDistanceGroupingStatistic()
+            print("Total OK Count : "+str(okayCount))
+            okayAlgo.printHighestDistanceGroupingStatistic()
             
             break
         number, mode = select_mode(key, mode)
@@ -376,11 +380,17 @@ def main():
                     gesture_text = "Middle Finger"
                     print("Fuck youuuu")
                     # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                elif is_close(hand_landmarks.landmark):
+                    gesture_text = "Close"
+                    closeCount += 1
+                    print("Close")
+                    closeAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 elif is_thumb_up(hand_landmarks.landmark):
                     gesture_text = "Thumb Up"
                     print("Thumb up")
                     thumbUpCount += 1
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
                     thumbUpAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
                     
                 elif is_thumb_down(hand_landmarks.landmark):
@@ -388,25 +398,21 @@ def main():
                     thumbDownCount += 1
                     print("Thumb down")
                     thumbDownAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 elif is_peace_sign(hand_landmarks.landmark):
                     gesture_text = "Peace Sign"
                     print("RIP")
                     # printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 elif is_ok_sign(hand_landmarks.landmark):
                     gesture_text = "OK Sign"
+                    okayCount += 1
                     print("Ogay")
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    okayAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
                 elif is_fist(hand_landmarks.landmark):
                     gesture_text = "Fist"
                     print("Bagelo")
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                elif is_close(hand_landmarks.landmark):
-                    gesture_text = "Close"
-                    closeCount += 1
-                    print("Close")
-                    closeAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 else:
                     gesture_text = keypoint_classifier_labels[hand_sign_id]
                     print("Unknown: "+gesture_text)

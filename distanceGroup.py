@@ -198,7 +198,7 @@ class DistanceGroup():
                         
         print("1st and 2nd max group for index width")
         self.printAndRemoveMaximumDistanceGroup(self.indexWidthRange_containers)
-        print("1st and 2nd max group for thumb height")
+        print("1st and 2nd max group for index height")
         self.printAndRemoveMaximumDistanceGroup(self.indexHeightRange_containers)
                         
         print("1st and 2nd max group for middle width")
