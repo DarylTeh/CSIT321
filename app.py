@@ -48,10 +48,12 @@ def is_close(landmarks):
     base = landmarks[0]
     
     # is_horizontal = isWithinBufferRange(index_tip.x, index_middle.x, 0.01) and isWithinBufferRange(middle_tip.x, middle_middle.x, 0.02) and isWithinBufferRange(ring_tip.x, ring_middle.x, 0.03) and isWithinBufferRange(pinky_tip.x, pinky_middle.x, 0.04) and isWithinBufferRange(thumb_tip.x, thumb_base.x, 0.15)
-    is_horizontal = isWithinBufferRange(index_tip.x, index_middle.x, 0.1) and isWithinBufferRange(middle_tip.x, middle_middle.x, 0.1) and isWithinBufferRange(ring_tip.x, ring_middle.x, 0.1) and isWithinBufferRange(pinky_tip.x, pinky_middle.x, 0.1) and isWithinBufferRange(thumb_tip.x, thumb_base.x, 0.15)
+    is_horizontal = isWithinBufferRange(index_tip.x, index_middle.x, 0, 0.01) and isWithinBufferRange(middle_tip.x, middle_middle.x, 0, 0.01) and isWithinBufferRange(ring_tip.x, ring_middle.x, 0, 0.01) and isWithinBufferRange(pinky_tip.x, pinky_middle.x, 0, 0.02) and isWithinBufferRange(thumb_tip.x, thumb_base.x, 0, 0.01)
+    # is_horizontal = True
 
     # is_clenched = isWithinBufferRange(index_tip.y, index_middle.y, 0.05) and isWithinBufferRange(middle_tip.y, middle_middle.y, 0.05) and isWithinBufferRange(ring_tip.y, ring_middle.y, 0.05) and isWithinBufferRange(pinky_tip.y, pinky_middle.y, 0.05) and isWithinBufferRange(thumb_tip.y, thumb_base.y, 0.01)
-    is_clenched = isWithinBufferRange(index_tip.y, index_middle.y, 0.1) and isWithinBufferRange(middle_tip.y, middle_middle.y, 0.1) and isWithinBufferRange(ring_tip.y, ring_middle.y, 0.1) and isWithinBufferRange(pinky_tip.y, pinky_middle.y, 0.1) and isWithinBufferRange(thumb_tip.y, thumb_base.y, 0.1) and pointOneLowerThanPointTwo(base, thumb_base) and pointOneLowerThanPointTwo(base, ring_tip) and pointOneLowerThanPointTwo(base, index_tip) and pointOneLowerThanPointTwo(base, middle_tip) and pointOneLowerThanPointTwo(base, pinky_tip)
+    is_clenched = isWithinBufferRange(index_tip.y, index_middle.y, 0.05, 0.1) and isWithinBufferRange(middle_tip.y, middle_middle.y, 0.07, 0.1) and isWithinBufferRange(ring_tip.y, ring_middle.y, 0.004, 0.02) and isWithinBufferRange(pinky_tip.y, pinky_middle.y, 0.05, 0.09) and isWithinBufferRange(thumb_tip.y, thumb_base.y, 0.1, 0.2) and pointOneLowerThanPointTwo(base, thumb_base) and pointOneLowerThanPointTwo(base, ring_tip) and pointOneLowerThanPointTwo(base, index_tip) and pointOneLowerThanPointTwo(base, middle_tip) and pointOneLowerThanPointTwo(base, pinky_tip)
+    # is_clenched = True
     
     is_horizontal_clenched = is_horizontal and is_clenched
     
@@ -86,9 +88,13 @@ def is_thumb_up(landmarks):
     # Thumb up: Thumb straight, other fingers clenched
     thumb_tip = landmarks[4]
     thumb_base = landmarks[1]
-    
+    index_middle = landmarks[6]
+    middle_middle = landmarks[10]
+
     # Check if thumb is straight up (x, y coordinate check based on the angle of thumb)
     is_thumb_straight = thumb_tip.y < thumb_base.y and (thumb_tip.x - thumb_base.x) < 0.1
+    
+    is_thumb_highest = thumb_tip.y < index_middle.y and thumb_tip.y < middle_middle.y
     
     # Check if other fingers are clenched
     are_other_fingers_clenched = (
@@ -96,34 +102,35 @@ def is_thumb_up(landmarks):
         landmarks[12].y > landmarks[10].y and  # Middle finger clenched
         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
         landmarks[20].y > landmarks[18].y    # Pinky clenched
+    
     )
     
-    return is_thumb_straight and are_other_fingers_clenched
+    return is_thumb_straight and is_thumb_highest and are_other_fingers_clenched
 
 def is_thumb_down(landmarks):
     # Thumb down: Thumb straight, other fingers clenched
     thumb_tip = landmarks[4]
     thumb_base = landmarks[1]
     
-    is_thumb_straight = isWithinBufferRange(thumb_tip.y, thumb_base.y, 0.2) and abs(thumb_tip.x - thumb_base.x) < 0.07
+    is_thumb_straight = isWithinBufferRange(thumb_tip.y, thumb_base.y, 0, 0.2) and abs(thumb_tip.x - thumb_base.x) < 0.07
     
     # Check if other fingers are clenched
     are_other_fingers_clenched = (
         # 0.1 should be okay, so far I see the distance between tip and base are all around 0.03 - 0.05
-        isWithinBufferRange(landmarks[8].y, landmarks[6].y, 0.05) and  # Index finger clenched
-        isWithinBufferRange(landmarks[12].y, landmarks[10].y, 0.05) and  # Middle finger clenched
-        isWithinBufferRange(landmarks[16].y, landmarks[14].y, 0.05) and  # Ring finger clenched
-        isWithinBufferRange(landmarks[20].y, landmarks[18].y, 0.05)  # Pinky clenched
+        isWithinBufferRange(landmarks[8].y, landmarks[6].y, 0, 0.05) and  # Index finger clenched
+        isWithinBufferRange(landmarks[12].y, landmarks[10].y, 0, 0.05) and  # Middle finger clenched
+        isWithinBufferRange(landmarks[16].y, landmarks[14].y, 0, 0.05) and  # Ring finger clenched
+        isWithinBufferRange(landmarks[20].y, landmarks[18].y, 0, 0.05)  # Pinky clenched
     )
     
     is_thumb_facing_downwards = thumb_tip.y > landmarks[18].y and thumb_tip.y > landmarks[14].y and thumb_tip.y > landmarks[10].y and thumb_tip.y > landmarks[6].y
     
     return is_thumb_straight and are_other_fingers_clenched and is_thumb_facing_downwards
 
-def isWithinBufferRange(pointOne, pointTwo, acceptedDistance):
+def isWithinBufferRange(pointOne, pointTwo, acceptedLowerDistance, acceptedUpperDistance):
     distance = abs(pointOne - pointTwo)
     # if its y axis, pointOne can be higher/lower than pointTwo by 0.5, if its x axis, pointOne can be left/right more than positionTwo by 0.5(give buffer, if not die die must be very accurate position also not friendly for user) 
-    if distance <= acceptedDistance:
+    if acceptedLowerDistance <= distance < acceptedUpperDistance:
         return True
     return False
 
@@ -237,9 +244,10 @@ def main():
     thumbUpAlgo = DistanceGroup(5000)
     thumbDownAlgo = DistanceGroup(5000)
     closeAlgo = DistanceGroup(5000)
+    okayAlgo = DistanceGroup(5000)
 
     # Define the list of gestures
-    gestures = ["Middle Finger", "Thumb Up", "Thumb Down", "Peace Sign", "OK Sign", "Fist"]
+    gestures = ["Middle Finger", "Thumb Up", "Thumb Down", "Peace Sign", "OK Sign", "Fist", "Close"]
     
     # Create a function to handle keypress events
     def record_key(event, gesture, label):
@@ -367,6 +375,7 @@ def main():
     thumbDownCount = 0
     thumbUpCount = 0
     closeCount = 0
+    okayCount = 0
 
     while True:
         fps = cvFpsCalc.get()
@@ -380,6 +389,8 @@ def main():
             thumbUpAlgo.printHighestDistanceGroupingStatistic()
             print("Total Close Count : "+str(closeCount))
             closeAlgo.printHighestDistanceGroupingStatistic()
+            print("Total OK Count : "+str(okayCount))
+            okayAlgo.printHighestDistanceGroupingStatistic()
             
             break
         number, mode = select_mode(key, mode)
@@ -435,11 +446,17 @@ def main():
                     gesture_text = "Middle Finger"
                     print("Fuck youuuu")
                     # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                elif is_close(hand_landmarks.landmark):
+                    gesture_text = "Close"
+                    closeCount += 1
+                    print("Close")
+                    closeAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 elif is_thumb_up(hand_landmarks.landmark):
                     gesture_text = "Thumb Up"
                     print("Thumb up")
                     thumbUpCount += 1
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
                     thumbUpAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
                     
                 elif is_thumb_down(hand_landmarks.landmark):
@@ -447,25 +464,21 @@ def main():
                     thumbDownCount += 1
                     print("Thumb down")
                     thumbDownAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 elif is_peace_sign(hand_landmarks.landmark):
                     gesture_text = "Peace Sign"
                     print("RIP")
                     # printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 elif is_ok_sign(hand_landmarks.landmark):
                     gesture_text = "OK Sign"
+                    okayCount += 1
                     print("Ogay")
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    okayAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
                 elif is_fist(hand_landmarks.landmark):
                     gesture_text = "Fist"
                     print("Bagelo")
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                elif is_close(hand_landmarks.landmark):
-                    gesture_text = "Close"
-                    closeCount += 1
-                    print("Close")
-                    closeAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
                 else:
                     gesture_text = keypoint_classifier_labels[hand_sign_id]
                     print("Unknown: "+gesture_text)
