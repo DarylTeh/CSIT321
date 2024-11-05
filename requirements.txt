@@ -2,6 +2,5 @@ opencv-python
 scikit-learn
 matplotlib
 protobuf
-pyautogui
 mediapipe
 tensorflow
