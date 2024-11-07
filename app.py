@@ -34,116 +34,116 @@ async def press_key_throttled(hex_key_code):
         win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
         last_key_press_time = current_time
 
-def is_thumb_up(landmarks):
-    # Thumb up: Thumb straight, other fingers clenched
-    thumb_tip = landmarks[4]
-    thumb_base = landmarks[1]
+# def is_thumb_up(landmarks):
+#     # Thumb up: Thumb straight, other fingers clenched
+#     thumb_tip = landmarks[4]
+#     thumb_base = landmarks[1]
     
-    # Check if thumb is straight up (x, y coordinate check based on the angle of thumb)
-    is_thumb_straight = thumb_tip.y < thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
+#     # Check if thumb is straight up (x, y coordinate check based on the angle of thumb)
+#     is_thumb_straight = thumb_tip.y < thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
     
-    # Check if other fingers are clenched
-    are_other_fingers_clenched = (
-        landmarks[8].y > landmarks[6].y and  # Index finger clenched
-        landmarks[12].y > landmarks[10].y and  # Middle finger clenched
-        landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-        landmarks[20].y > landmarks[18].y    # Pinky clenched
-    )
+#     # Check if other fingers are clenched
+#     are_other_fingers_clenched = (
+#         landmarks[8].y > landmarks[6].y and  # Index finger clenched
+#         landmarks[12].y > landmarks[10].y and  # Middle finger clenched
+#         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
+#         landmarks[20].y > landmarks[18].y    # Pinky clenched
+#     )
     
-    return is_thumb_straight and are_other_fingers_clenched
+#     return is_thumb_straight and are_other_fingers_clenched
 
-def is_thumb_down(landmarks):
-    # Thumb down: Thumb straight, other fingers clenched
-    thumb_tip = landmarks[4]
-    thumb_base = landmarks[1]
+# def is_thumb_down(landmarks):
+#     # Thumb down: Thumb straight, other fingers clenched
+#     thumb_tip = landmarks[4]
+#     thumb_base = landmarks[1]
     
-    # Check if thumb is straight down (x, y coordinate check based on the angle of thumb)
-    is_thumb_straight = thumb_tip.y > thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
+#     # Check if thumb is straight down (x, y coordinate check based on the angle of thumb)
+#     is_thumb_straight = thumb_tip.y > thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
     
-    # Check if other fingers are clenched
-    are_other_fingers_clenched = (
-        landmarks[8].y > landmarks[6].y and  # Index finger clenched
-        landmarks[12].y > landmarks[10].y and  # Middle finger clenched
-        landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-        landmarks[20].y > landmarks[18].y    # Pinky clenched
-    )
+#     # Check if other fingers are clenched
+#     are_other_fingers_clenched = (
+#         landmarks[8].y > landmarks[6].y and  # Index finger clenched
+#         landmarks[12].y > landmarks[10].y and  # Middle finger clenched
+#         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
+#         landmarks[20].y > landmarks[18].y    # Pinky clenched
+#     )
     
-    return is_thumb_straight and are_other_fingers_clenched
+#     return is_thumb_straight and are_other_fingers_clenched
 
-def is_middle_finger_up(landmarks):
-    # Middle finger up: Middle finger raised, others clenched
-    middle_finger_tip = landmarks[12]
-    ring_finger_tip = landmarks[16]
-    index_finger_tip = landmarks[8]
+# def is_middle_finger_up(landmarks):
+#     # Middle finger up: Middle finger raised, others clenched
+#     middle_finger_tip = landmarks[12]
+#     ring_finger_tip = landmarks[16]
+#     index_finger_tip = landmarks[8]
     
-    # Check if middle finger is raised
-    is_middle_raised = middle_finger_tip.y < ring_finger_tip.y and middle_finger_tip.y < index_finger_tip.y
+#     # Check if middle finger is raised
+#     is_middle_raised = middle_finger_tip.y < ring_finger_tip.y and middle_finger_tip.y < index_finger_tip.y
     
-    # Check if other fingers are clenched
-    are_other_fingers_clenched = (
-        landmarks[8].y > landmarks[6].y and  # Index finger clenched
-        landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-        landmarks[20].y > landmarks[18].y    # Pinky clenched
-    )
+#     # Check if other fingers are clenched
+#     are_other_fingers_clenched = (
+#         landmarks[8].y > landmarks[6].y and  # Index finger clenched
+#         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
+#         landmarks[20].y > landmarks[18].y    # Pinky clenched
+#     )
     
-    return is_middle_raised and are_other_fingers_clenched
+#     return is_middle_raised and are_other_fingers_clenched
 
-def is_peace_sign(landmarks):
-    # Peace sign (V sign): Index and middle finger raised, others clenched
-    index_finger_tip = landmarks[8]
-    middle_finger_tip = landmarks[12]
-    ring_finger_tip = landmarks[16]
-    pinky_tip = landmarks[20]
+# def is_peace_sign(landmarks):
+#     # Peace sign (V sign): Index and middle finger raised, others clenched
+#     index_finger_tip = landmarks[8]
+#     middle_finger_tip = landmarks[12]
+#     ring_finger_tip = landmarks[16]
+#     pinky_tip = landmarks[20]
 
-    # Check if index and middle fingers are raised
-    are_index_and_middle_raised = index_finger_tip.y < landmarks[6].y and middle_finger_tip.y < landmarks[10].y
+#     # Check if index and middle fingers are raised
+#     are_index_and_middle_raised = index_finger_tip.y < landmarks[6].y and middle_finger_tip.y < landmarks[10].y
     
-    # Check if ring and pinky fingers are clenched
-    are_ring_and_pinky_clenched = (
-        ring_finger_tip.y > landmarks[14].y and  # Ring finger clenched
-        pinky_tip.y > landmarks[18].y            # Pinky clenched
-    )
+#     # Check if ring and pinky fingers are clenched
+#     are_ring_and_pinky_clenched = (
+#         ring_finger_tip.y > landmarks[14].y and  # Ring finger clenched
+#         pinky_tip.y > landmarks[18].y            # Pinky clenched
+#     )
     
-    return are_index_and_middle_raised and are_ring_and_pinky_clenched
+#     return are_index_and_middle_raised and are_ring_and_pinky_clenched
 
-def is_ok_sign(landmarks):
-    # OK sign: Thumb and index finger touch to form a circle, other fingers clenched
-    thumb_tip = landmarks[4]
-    index_finger_tip = landmarks[8]
-    thumb_index_distance = ((thumb_tip.x - index_finger_tip.x) ** 2 + (thumb_tip.y - index_finger_tip.y) ** 2) ** 0.5
+# def is_ok_sign(landmarks):
+#     # OK sign: Thumb and index finger touch to form a circle, other fingers clenched
+#     thumb_tip = landmarks[4]
+#     index_finger_tip = landmarks[8]
+#     thumb_index_distance = ((thumb_tip.x - index_finger_tip.x) ** 2 + (thumb_tip.y - index_finger_tip.y) ** 2) ** 0.5
     
-    # Check if thumb and index finger are touching (distance between tips is small)
-    is_thumb_index_touching = thumb_index_distance < 0.05
+#     # Check if thumb and index finger are touching (distance between tips is small)
+#     is_thumb_index_touching = thumb_index_distance < 0.05
     
-    # Check if other fingers are clenched
-    are_other_fingers_clenched = (
-        landmarks[12].y > landmarks[10].y and  # Middle finger clenched
-        landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-        landmarks[20].y > landmarks[18].y      # Pinky clenched
-    )
+#     # Check if other fingers are clenched
+#     are_other_fingers_clenched = (
+#         landmarks[12].y > landmarks[10].y and  # Middle finger clenched
+#         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
+#         landmarks[20].y > landmarks[18].y      # Pinky clenched
+#     )
     
-    return is_thumb_index_touching and are_other_fingers_clenched
+#     return is_thumb_index_touching and are_other_fingers_clenched
 
-def is_fist(landmarks):
-    # Fist: All fingers clenched, thumb across the palm
-    thumb_tip = landmarks[4]
-    index_finger_tip = landmarks[8]
-    middle_finger_tip = landmarks[12]
-    ring_finger_tip = landmarks[16]
-    pinky_tip = landmarks[20]
+# def is_fist(landmarks):
+#     # Fist: All fingers clenched, thumb across the palm
+#     thumb_tip = landmarks[4]
+#     index_finger_tip = landmarks[8]
+#     middle_finger_tip = landmarks[12]
+#     ring_finger_tip = landmarks[16]
+#     pinky_tip = landmarks[20]
     
-    # Check if all fingers are clenched
-    are_all_fingers_clenched = (
-        index_finger_tip.y > landmarks[6].y and  # Index finger clenched
-        middle_finger_tip.y > landmarks[10].y and  # Middle finger clenched
-        ring_finger_tip.y > landmarks[14].y and  # Ring finger clenched
-        pinky_tip.y > landmarks[18].y            # Pinky clenched
-    )
+#     # Check if all fingers are clenched
+#     are_all_fingers_clenched = (
+#         index_finger_tip.y > landmarks[6].y and  # Index finger clenched
+#         middle_finger_tip.y > landmarks[10].y and  # Middle finger clenched
+#         ring_finger_tip.y > landmarks[14].y and  # Ring finger clenched
+#         pinky_tip.y > landmarks[18].y            # Pinky clenched
+#     )
     
-    # Check if thumb is across the palm
-    is_thumb_clenched = thumb_tip.x < landmarks[3].x  # Thumb crosses inward
+#     # Check if thumb is across the palm
+#     is_thumb_clenched = thumb_tip.x < landmarks[3].x  # Thumb crosses inward
     
-    return are_all_fingers_clenched and is_thumb_clenched
+#     return are_all_fingers_clenched and is_thumb_clenched
 
 
 def get_args():
