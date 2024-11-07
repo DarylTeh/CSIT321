@@ -30,7 +30,7 @@ async def press_key_throttled(key):
     if current_time - last_key_press_time >= THROTTLE_TIME:
         pydirectinput.press(key)
         last_key_press_time = current_time
-
+ 
 def is_thumb_up(landmarks):
     # Thumb up: Thumb straight, other fingers clenched
     thumb_tip = landmarks[4]
