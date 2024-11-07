@@ -92,7 +92,7 @@ def is_middle_finger_up(landmarks):
         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
         landmarks[20].y > landmarks[18].y    # Pinky clenched
     )
-    
+
     return is_middle_raised and are_other_fingers_clenched
 
 def is_peace_sign(landmarks):
@@ -152,6 +152,23 @@ def is_fist(landmarks):
     
     return are_all_fingers_clenched and is_thumb_clenched
 
+def smooth_landmarks(current_landmarks, prev_landmarks, smoothing_factor=0.5):
+    if prev_landmarks is None:
+        # If no prev_landmarks return the current
+        return current_landmarks
+
+    # ave current and previous values to smooth landmarks
+    smoothed_landmarks = []
+    for current, previous in zip(current_landmarks, prev_landmarks):
+        smoothed_landmark = type(current)(
+            x=(1 - smoothing_factor) * current.x + smoothing_factor * previous.x,
+            y=(1 - smoothing_factor) * current.y + smoothing_factor * previous.y,
+            z=(1 - smoothing_factor) * current.z + smoothing_factor * previous.z,
+            visibility=current.visibility
+        )
+        smoothed_landmarks.append(smoothed_landmark)
+
+    return smoothed_landmarks
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -322,6 +339,9 @@ def main():
         image.flags.writeable = False
         results = hands.process(image)
         image.flags.writeable = True
+
+        prev_landmarks = None
+        smoothing_factor = 0.5
 
         if results.multi_hand_landmarks is not None:
             for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
