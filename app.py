@@ -20,10 +20,171 @@ from utils import CvFpsCalc
 from model import KeyPointClassifier
 from model import PointHistoryClassifier
 
+from interfaces import *
+
 from distanceGroup import DistanceGroup
 
 THROTTLE_TIME = 1
 last_key_press_time = 0
+
+class Root(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Main Menu")
+        self.geometry("500x500")
+        self.configure(bg="#f0f0f0")
+        
+        mainFrame = Frame(self)
+        
+        self.frames = {}
+        
+        for page in (mainMenuUI, predefinedHandGesturesUI, customHandGesturesUI):
+            print(f"Initializing frame for {page.__name__}")
+            frame = page(mainFrame, self)
+            self.frames[page] = frame
+            frame.grid(row=0, column=0, sticky=(W, E, N, S))
+        
+        self.navigateTo(mainMenuUI)
+    
+    def navigateTo(self, page):
+        if page in self.frames:
+            frame = self.frames[page]
+            frame.tkraise()
+        else:
+            print(f"Page {page.__name__} not found.")
+
+class mainMenuUI(ttk.Frame):
+    
+    def __init__(self, parent, controller):
+        super().__init__()
+        self.controller = controller
+        
+        title = Label(self, text=mainMenuTitle, font=titleSize)
+        title.pack()
+        
+        predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", lambda: controller.navigateTo(predefinedHandGesturesUI))
+        predefinedHandGesturesBtn.pack(padx=20, pady=20)
+        
+        customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", lambda: controller.navigateTo(customHandGesturesUI))
+        customHandGesturesBtn.pack(padx=20, pady=20)
+        
+        testingBtn = buildButton(self, "Test Hand Gestures", lambda: controller.navigateTo(testingHGUI))
+        testingBtn.pack(padx=20, pady=20)
+        
+        # startGameBtn = buildButton(self, "Start Game", lambda: controller.navigateTo())
+        # startGameBtn.pack(padx=20, pady=20)
+        
+class predefinedHandGesturesUI(ttk.Frame):
+    
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        
+        title = Label(self, text=predefinedHGTitle, font=titleSize)
+        title.pack()
+        
+        # keyboardBtn = buildButton(self, "Keyboard", )
+        # mouseBtn = buildButton(self, "Mouse", )
+        # doneBtn = buildButton(self, "Done", , "green")
+        
+        # keyboardBtn.pack(padx=20, pady=20)
+        # mouseBtn.pack(padx=20, pady=20)
+        # doneBtn.pack(padx=20, pady=20)
+        
+
+class customHandGesturesUI(ttk.Frame):
+    
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        
+        title = Label(self, text=customHGTitle, font=titleSize)
+        title.pack()
+        
+        # keyboardBtn = buildButton(self, "Keyboard", )
+        # mouseBtn = buildButton(self, "Mouse", )
+        # doneBtn = buildButton(self, "Done", , "green")
+        
+        # keyboardBtn.pack(padx=20, pady=20)
+        # mouseBtn.pack(padx=20, pady=20)
+        # doneBtn.pack(padx=20, pady=20)  
+        
+class testingHGUI(ttk.Frame):
+    
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        
+        title = Label(self, text=customHGTitle, font=titleSize)
+        title.pack()
+        
+        # keyboardBtn = buildButton(self, "Keyboard", )
+        # mouseBtn = buildButton(self, "Mouse", )
+        # doneBtn = buildButton(self, "Done", , "green")
+        
+        # keyboardBtn.pack(padx=20, pady=20)
+        # mouseBtn.pack(padx=20, pady=20)
+        # doneBtn.pack(padx=20, pady=20)
+        
+def buildButton(frame, text, actionFunc):
+    
+    button = Button(
+        frame,
+        text=text,
+        command= actionFunc(),
+        activebackground="blue",
+        activeforeground="white",
+        anchor="center",
+        bd=3,
+        bg="lightgray",
+        cursor="hand2",
+        foreground="black",
+        fg="black",
+        font=("Arial", 12),
+        height=2,
+        highlightbackground="black",
+        highlightcolor="green",
+        highlightthickness=2,
+        justify="center",
+        overrelief="raised",
+        padx=10,
+        pady=5,
+        width=15,
+        wraplength=100
+    )
+    
+    return button
+
+def buildButtonWithColor(frame, text, actionFunc, color):
+    
+    button = Button(
+        frame,
+        text=text,
+        command= actionFunc(),
+        activebackground=color,
+        activeforeground="white",
+        anchor="center",
+        bd=3,
+        bg="lightgray",
+        cursor="hand2",
+        foreground="black",
+        fg="black",
+        font=("Arial", 12),
+        height=2,
+        highlightbackground="black",
+        highlightcolor="green",
+        highlightthickness=2,
+        justify="center",
+        overrelief="raised",
+        padx=10,
+        pady=5,
+        width=15,
+        wraplength=100
+    )
+    
+    return button
+
+    #  ===================================================================================================================== User Interfaces ===========================================================================================================
 
 async def press_key_throttled(hex_key_code):
     global last_key_press_time
@@ -204,10 +365,11 @@ def main():
         root.quit()
 
     # Create the main window
-    root = tk.Tk()
-    root.title("Gesture to Key Mapping")
-    root.geometry("500x500")
-    root.configure(bg="#f0f0f0")
+    # root = tk.Tk()
+    # root.title("Main Menu")
+    # root.geometry("500x500")
+    # root.configure(bg="#f0f0f0")
+    root = Root()
 
     # Use a nicer theme
     style = ttk.Style()
@@ -215,39 +377,41 @@ def main():
     style.configure('TButton', font=('Arial', 12), padding=5)
     style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
     style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
+    
 
     # Create a frame to hold all mappings
-    frame = ttk.Frame(root, padding=20, style='Frame.TFrame')
-    frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+    # frame = ttk.Frame(root, padding=20, style='Frame.TFrame')
+    # frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
 
     # Header Label
-    header_label = ttk.Label(frame, text="Map Gestures to Key Presses", style='Header.TLabel')
-    header_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+    # header_label = ttk.Label(frame, text="Map Gestures to Key Presses", style='Header.TLabel')
+    # header_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
-    # Add labels and buttons for each gesture
-    for idx, gesture in enumerate(gestures):
-        label = ttk.Label(frame, text=f"{gesture}: Not assigned", foreground="red")
-        label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
+    # # Add labels and buttons for each gesture
+    # for idx, gesture in enumerate(gestures):
+    #     label = ttk.Label(frame, text=f"{gesture}: Not assigned", foreground="red")
+    #     label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
         
-        button = ttk.Button(frame, text="Click to record", 
-                            command=lambda g=gesture, l=label: enable_recording(g, l))
-        button.grid(row=idx + 1, column=1, padx=10, pady=10)
+    #     button = ttk.Button(frame, text="Click to record", 
+    #                         command=lambda g=gesture, l=label: enable_recording(g, l))
+    #     button.grid(row=idx + 1, column=1, padx=10, pady=10)
         
-        # Add hover effect to buttons
-        def on_enter(event, b=button):
-            b.config(style='Hover.TButton')
+    #     # Add hover effect to buttons
+    #     def on_enter(event, b=button):
+    #         b.config(style='Hover.TButton')
         
-        def on_leave(event, b=button):
-            b.config(style='TButton')
+    #     def on_leave(event, b=button):
+    #         b.config(style='TButton')
 
-        button.bind("<Enter>", on_enter)
-        button.bind("<Leave>", on_leave)
+    #     button.bind("<Enter>", on_enter)
+    #     button.bind("<Leave>", on_leave)
 
-    style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
+    # style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
 
-    # Add a proceed button
-    proceed_button = ttk.Button(frame, text="Proceed", command=proceed, style='TButton')
-    proceed_button.grid(row=len(gestures) + 2, column=0, columnspan=2, pady=20)
+    # # Add a proceed button
+    # proceed_button = ttk.Button(frame, text="Proceed", command=proceed, style='TButton')
+    # proceed_button.grid(row=len(gestures) + 2, column=0, columnspan=2, pady=20)
 
     # Run the application
     root.mainloop()
@@ -799,3 +963,12 @@ def draw_info(image, fps, mode, number):
 
 if __name__ == '__main__':
     main()
+
+# def initialistPages(mainFrame, root):
+#     frames = {}
+    
+#     for page in (mainMenuUI, predefinedHandGesturesUI, customHandGesturesUI):
+#         frame = page(mainFrame, root)
+#         frames[page] = frame
+    
+#     return frames
