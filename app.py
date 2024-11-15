@@ -199,23 +199,23 @@ async def press_key_throttled(hex_key_code):
         win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
         last_key_press_time = current_time
 
-def is_thumb_up(landmarks):
-    # Thumb up: Thumb straight, other fingers clenched
-    thumb_tip = landmarks[4]
-    thumb_base = landmarks[1]
+# def is_thumb_up(landmarks):
+#     # Thumb up: Thumb straight, other fingers clenched
+#     thumb_tip = landmarks[4]
+#     thumb_base = landmarks[1]
     
-    # Check if thumb is straight up (x, y coordinate check based on the angle of thumb)
-    is_thumb_straight = thumb_tip.y < thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
+#     # Check if thumb is straight up (x, y coordinate check based on the angle of thumb)
+#     is_thumb_straight = thumb_tip.y < thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
     
-#     # Check if other fingers are clenched
-#     are_other_fingers_clenched = (
-#         landmarks[8].y > landmarks[6].y and  # Index finger clenched
-#         landmarks[12].y > landmarks[10].y and  # Middle finger clenched
-#         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-#         landmarks[20].y > landmarks[18].y    # Pinky clenched
-#     )
+# #     # Check if other fingers are clenched
+# #     are_other_fingers_clenched = (
+# #         landmarks[8].y > landmarks[6].y and  # Index finger clenched
+# #         landmarks[12].y > landmarks[10].y and  # Middle finger clenched
+# #         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
+# #         landmarks[20].y > landmarks[18].y    # Pinky clenched
+# #     )
     
-    return is_thumb_straight and are_other_fingers_clenched
+#     return is_thumb_straight and are_other_fingers_clenched
 
 # def is_thumb_down(landmarks):
 #     # Thumb down: Thumb straight, other fingers clenched
