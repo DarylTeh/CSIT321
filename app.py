@@ -49,7 +49,7 @@ class Root(tk.Tk):
     def __init__(self):
         super().__init__()
         
-        self.title("Main Menu")
+        self.title("Playing Games with Bare Hands")
         self.geometry("500x500")
         self.configure(bg="#f0f0f0")
         
@@ -84,13 +84,13 @@ class mainMenuUI(ttk.Frame):
         title.pack()
         
         # predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", lambda: controller.navigateTo(PREDEFINED_HG_UI))
-        predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", PREDEFINED_HG_UI)
+        predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", navigateTo, PREDEFINED_HG_UI)
         predefinedHandGesturesBtn.pack(padx=20, pady=20)
         
-        customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", CUSTOM_HG_UI)
+        customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", navigateTo, CUSTOM_HG_UI)
         customHandGesturesBtn.pack(padx=20, pady=20)
         
-        testingBtn = buildButton(self, "Test Hand Gestures", TESTING_HG_UI)
+        testingBtn = buildButton(self, "Test Hand Gestures", initiateWebCam, None)
         testingBtn.pack(padx=20, pady=20)
         
         # startGameBtn = buildButton(self, "Start Game", lambda: controller.navigateTo())
@@ -108,12 +108,12 @@ class predefinedHandGesturesUI(ttk.Frame):
         title = Label(self, text=predefinedHGTitle, font=titleSize)
         title.pack()
         
-        # keyboardBtn = buildButton(self, "Keyboard", )
-        # mouseBtn = buildButton(self, "Mouse", )
-        doneBtn = buildButtonWithColor(self, "Done", MAINMENU_UI, "green")
+        keyboardBtn = buildButton(self, "Keyboard", navigateTo, "TOCHANGE")
+        mouseBtn = buildButton(self, "Mouse", navigateTo, "TOCHANGE")
+        doneBtn = buildButtonWithColor(self, "Done", navigateTo, MAINMENU_UI, "green")
         
-        # keyboardBtn.pack(padx=20, pady=20)
-        # mouseBtn.pack(padx=20, pady=20)
+        keyboardBtn.pack(padx=20, pady=20)
+        mouseBtn.pack(padx=20, pady=20)
         doneBtn.pack(padx=20, pady=20)
         
     def getIdentity():
@@ -129,12 +129,12 @@ class customHandGesturesUI(ttk.Frame):
         title = Label(self, text=customHGTitle, font=titleSize)
         title.pack()
         
-        # keyboardBtn = buildButton(self, "Keyboard", )
-        # mouseBtn = buildButton(self, "Mouse", )
-        doneBtn = buildButtonWithColor(self, "Done", MAINMENU_UI, "green")
+        keyboardBtn = buildButton(self, "Keyboard", navigateTo, "TOCHANGE")
+        mouseBtn = buildButton(self, "Mouse", navigateTo, "TOCHANGE")
+        doneBtn = buildButtonWithColor(self, "Done", navigateTo, MAINMENU_UI, "green")
         
-        # keyboardBtn.pack(padx=20, pady=20)
-        # mouseBtn.pack(padx=20, pady=20)
+        keyboardBtn.pack(padx=20, pady=20)
+        mouseBtn.pack(padx=20, pady=20)
         doneBtn.pack(padx=20, pady=20)
         
     def getIdentity():
@@ -160,12 +160,12 @@ class testingHGUI(ttk.Frame):
     def getIdentity():
         return TESTING_HG_UI
         
-def buildButton(frame, text, pageName):
+def buildButton(frame, text, actionFunc, pageName):
     
     button = Button(
         frame,
         text=text,
-        command= lambda: navigateTo(pageName),
+        command= lambda: actionFunc(pageName) if pageName is not None else actionFunc(),
         activebackground="blue",
         activeforeground="white",
         anchor="center",
@@ -189,12 +189,12 @@ def buildButton(frame, text, pageName):
     
     return button
 
-def buildButtonWithColor(frame, text, pageName, color):
+def buildButtonWithColor(frame, text, actionFunc, pageName, color):
     
     button = Button(
         frame,
         text=text,
-        command= lambda: navigateTo(pageName),
+        command= lambda: actionFunc(pageName),
         activebackground="blue",
         activeforeground=color,
         anchor="center",
@@ -230,6 +230,203 @@ async def press_key_throttled(hex_key_code):
         # Simulates releasing the key
         win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
         last_key_press_time = current_time
+        
+def initiateWebCam():
+    
+    args = get_args()
+
+    cap_device = args.device
+    cap_width = args.width
+    cap_height = args.height
+
+    use_static_image_mode = args.use_static_image_mode
+    min_detection_confidence = args.min_detection_confidence
+    min_tracking_confidence = args.min_tracking_confidence
+
+    use_brect = True
+
+    cap = cv.VideoCapture(cap_device)
+    cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
+    cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
+    
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands(
+        static_image_mode=use_static_image_mode,
+        max_num_hands=2,
+        min_detection_confidence=min_detection_confidence,
+        min_tracking_confidence=min_tracking_confidence,
+    )
+    
+    # KeypointClassifier mainly run through all the data from keypoint_classifier.tflite to predict what is the class of the input data, output will be choosing the class with highest probability.
+    keypoint_classifier = KeyPointClassifier()
+
+    point_history_classifier = PointHistoryClassifier()
+
+    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
+              encoding='utf-8-sig') as f:
+        keypoint_classifier_labels = csv.reader(f)
+        keypoint_classifier_labels = [
+            row[0] for row in keypoint_classifier_labels
+        ]
+    with open(
+            'model/point_history_classifier/point_history_classifier_label.csv',
+            encoding='utf-8-sig') as f:
+        point_history_classifier_labels = csv.reader(f)
+        point_history_classifier_labels = [
+            row[0] for row in point_history_classifier_labels
+        ]
+
+    cvFpsCalc = CvFpsCalc(buffer_len=10)
+
+    history_length = 16
+    # point_history store most recent 16 points
+    point_history = deque(maxlen=history_length)
+    #  finger_gesture_history store most recent 16 gestures 
+    finger_gesture_history = deque(maxlen=history_length)
+
+    mode = 0
+    
+    thumbDownCount = 0
+    thumbUpCount = 0
+    closeCount = 0
+    okayCount = 0
+
+    while True:
+        fps = cvFpsCalc.get()
+        
+        key = cv.waitKey(10)
+        if key == 27:  # ESC
+            
+            # print("Total Thumbs Down Count : "+str(thumbDownCount))
+            # thumbDownAlgo.printHighestDistanceGroupingStatistic()
+            # print("Total Thumbs Up Count : "+str(thumbUpCount))
+            # thumbUpAlgo.printHighestDistanceGroupingStatistic()
+            # print("Total Close Count : "+str(closeCount))
+            # closeAlgo.printHighestDistanceGroupingStatistic()
+            # print("Total OK Count : "+str(okayCount))
+            # okayAlgo.printHighestDistanceGroupingStatistic()
+            
+            break
+        number, mode = select_mode(key, mode)
+
+        # means if the camera capture something, then ret is True. Else ret is False.
+        ret, image = cap.read()
+        if not ret:
+            break
+        image = cv.flip(image, 1)
+        debug_image = copy.deepcopy(image)
+
+        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+
+        image.flags.writeable = False
+        results = hands.process(image)
+        image.flags.writeable = True
+
+        # multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
+        if results.multi_hand_landmarks is not None:
+            for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
+                                                  results.multi_handedness):
+                brect = calc_bounding_rect(debug_image, hand_landmarks)
+                # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
+                landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+
+                # pre_process_landmark() will normalise a list of landmarks
+                pre_processed_landmark_list = pre_process_landmark(
+                    landmark_list)
+                # pre_process_point_history will normalise a list of point history
+                pre_processed_point_history_list = pre_process_point_history(
+                    debug_image, point_history)
+                logging_csv(number, mode, pre_processed_landmark_list,
+                            pre_processed_point_history_list)
+
+                # keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
+                hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+                if hand_sign_id == 2:
+                    point_history.append(landmark_list[8])
+                else:
+                    point_history.append([0, 0])
+
+                finger_gesture_id = 0
+                point_history_len = len(pre_processed_point_history_list)
+                if point_history_len == (history_length * 2):
+                    finger_gesture_id = point_history_classifier(
+                        pre_processed_point_history_list)
+
+                finger_gesture_history.append(finger_gesture_id)
+                most_common_fg_id = Counter(
+                    finger_gesture_history).most_common()
+                
+                if is_middle_finger_up(hand_landmarks.landmark):
+                    gesture_text = "Middle Finger"
+                    print("Fuck youuuu")
+                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                elif is_close(hand_landmarks.landmark):
+                    gesture_text = "Close"
+                    closeCount += 1
+                    print("Close")
+                    closeAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                elif is_thumb_up(hand_landmarks.landmark):
+                    gesture_text = "Thumb Up"
+                    print("Thumb up")
+                    thumbUpCount += 1
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    thumbUpAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
+                    
+                elif is_thumb_down(hand_landmarks.landmark):
+                    gesture_text = "Thumb Down"
+                    thumbDownCount += 1
+                    print("Thumb down")
+                    thumbDownAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                elif is_peace_sign(hand_landmarks.landmark):
+                    gesture_text = "Peace Sign"
+                    print("RIP")
+                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                elif is_ok_sign(hand_landmarks.landmark):
+                    gesture_text = "OK Sign"
+                    okayCount += 1
+                    print("Ogay")
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                    okayAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
+                elif is_fist(hand_landmarks.landmark):
+                    gesture_text = "Fist"
+                    print("Bagelo")
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                else:
+                    gesture_text = keypoint_classifier_labels[hand_sign_id]
+                    print("Unknown: "+gesture_text)
+                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+
+                debug_image = draw_bounding_rect(use_brect, debug_image, brect)
+                debug_image = draw_landmarks(debug_image, landmark_list)
+                debug_image = draw_info_text(
+                    debug_image,
+                    brect,
+                    handedness,
+                    gesture_text,
+                    point_history_classifier_labels[most_common_fg_id[0][0]],
+                )
+                
+                # print("gesture_text : "+gesture_text)
+
+                if (is_middle_finger_up(hand_landmarks.landmark) or
+                    is_thumb_up(hand_landmarks.landmark) or
+                    is_thumb_down(hand_landmarks.landmark) or
+                    is_peace_sign(hand_landmarks.landmark) or
+                    is_ok_sign(hand_landmarks.landmark) or
+                    is_fist(hand_landmarks.landmark)):
+                    asyncio.run(press_key_throttled(gesture_to_key[gesture_text]))
+        else:
+            point_history.append([0, 0])
+
+        debug_image = draw_point_history(debug_image, point_history)
+        debug_image = draw_info(debug_image, fps, mode, number)
+
+        cv.imshow('HGR To Play Games', debug_image)
+
+    cap.release()
+    cv.destroyAllWindows()
 
 # def is_thumb_up(landmarks):
 #     # Thumb up: Thumb straight, other fingers clenched
@@ -406,11 +603,11 @@ def main():
     root = Root()
 
     # Use a nicer theme
-    style = ttk.Style()
-    style.theme_use('clam')
-    style.configure('TButton', font=('Arial', 12), padding=5)
-    style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
-    style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
+    # style = ttk.Style()
+    # style.theme_use('clam')
+    # style.configure('TButton', font=('Arial', 12), padding=5)
+    # style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
+    # style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
     
 
     # Create a frame to hold all mappings
@@ -451,200 +648,200 @@ def main():
     root.mainloop()
 
 
-    args = get_args()
+    # args = get_args()
 
-    cap_device = args.device
-    cap_width = args.width
-    cap_height = args.height
+    # cap_device = args.device
+    # cap_width = args.width
+    # cap_height = args.height
 
-    use_static_image_mode = args.use_static_image_mode
-    min_detection_confidence = args.min_detection_confidence
-    min_tracking_confidence = args.min_tracking_confidence
+    # use_static_image_mode = args.use_static_image_mode
+    # min_detection_confidence = args.min_detection_confidence
+    # min_tracking_confidence = args.min_tracking_confidence
 
-    use_brect = True
+    # use_brect = True
 
-    cap = cv.VideoCapture(cap_device)
-    cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
-    cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
+    # cap = cv.VideoCapture(cap_device)
+    # cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
+    # cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
 
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(
-        static_image_mode=use_static_image_mode,
-        max_num_hands=2,
-        min_detection_confidence=min_detection_confidence,
-        min_tracking_confidence=min_tracking_confidence,
-    )
+    # mp_hands = mp.solutions.hands
+    # hands = mp_hands.Hands(
+    #     static_image_mode=use_static_image_mode,
+    #     max_num_hands=2,
+    #     min_detection_confidence=min_detection_confidence,
+    #     min_tracking_confidence=min_tracking_confidence,
+    # )
     
-    # KeypointClassifier mainly run through all the data from keypoint_classifier.tflite to predict what is the class of the input data, output will be choosing the class with highest probability.
-    keypoint_classifier = KeyPointClassifier()
+    # # KeypointClassifier mainly run through all the data from keypoint_classifier.tflite to predict what is the class of the input data, output will be choosing the class with highest probability.
+    # keypoint_classifier = KeyPointClassifier()
 
-    point_history_classifier = PointHistoryClassifier()
+    # point_history_classifier = PointHistoryClassifier()
 
-    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
-              encoding='utf-8-sig') as f:
-        keypoint_classifier_labels = csv.reader(f)
-        keypoint_classifier_labels = [
-            row[0] for row in keypoint_classifier_labels
-        ]
-    with open(
-            'model/point_history_classifier/point_history_classifier_label.csv',
-            encoding='utf-8-sig') as f:
-        point_history_classifier_labels = csv.reader(f)
-        point_history_classifier_labels = [
-            row[0] for row in point_history_classifier_labels
-        ]
+    # with open('model/keypoint_classifier/keypoint_classifier_label.csv',
+    #           encoding='utf-8-sig') as f:
+    #     keypoint_classifier_labels = csv.reader(f)
+    #     keypoint_classifier_labels = [
+    #         row[0] for row in keypoint_classifier_labels
+    #     ]
+    # with open(
+    #         'model/point_history_classifier/point_history_classifier_label.csv',
+    #         encoding='utf-8-sig') as f:
+    #     point_history_classifier_labels = csv.reader(f)
+    #     point_history_classifier_labels = [
+    #         row[0] for row in point_history_classifier_labels
+    #     ]
 
-    cvFpsCalc = CvFpsCalc(buffer_len=10)
+    # cvFpsCalc = CvFpsCalc(buffer_len=10)
 
-    history_length = 16
-    # point_history store most recent 16 points
-    point_history = deque(maxlen=history_length)
-    #  finger_gesture_history store most recent 16 gestures 
-    finger_gesture_history = deque(maxlen=history_length)
+    # history_length = 16
+    # # point_history store most recent 16 points
+    # point_history = deque(maxlen=history_length)
+    # #  finger_gesture_history store most recent 16 gestures 
+    # finger_gesture_history = deque(maxlen=history_length)
 
-    mode = 0
+    # mode = 0
     
-    thumbDownCount = 0
-    thumbUpCount = 0
-    closeCount = 0
-    okayCount = 0
+    # thumbDownCount = 0
+    # thumbUpCount = 0
+    # closeCount = 0
+    # okayCount = 0
 
-    while True:
-        fps = cvFpsCalc.get()
+    # while True:
+    #     fps = cvFpsCalc.get()
         
-        key = cv.waitKey(10)
-        if key == 27:  # ESC
+    #     key = cv.waitKey(10)
+    #     if key == 27:  # ESC
             
-            print("Total Thumbs Down Count : "+str(thumbDownCount))
-            thumbDownAlgo.printHighestDistanceGroupingStatistic()
-            print("Total Thumbs Up Count : "+str(thumbUpCount))
-            thumbUpAlgo.printHighestDistanceGroupingStatistic()
-            print("Total Close Count : "+str(closeCount))
-            closeAlgo.printHighestDistanceGroupingStatistic()
-            print("Total OK Count : "+str(okayCount))
-            okayAlgo.printHighestDistanceGroupingStatistic()
+    #         print("Total Thumbs Down Count : "+str(thumbDownCount))
+    #         thumbDownAlgo.printHighestDistanceGroupingStatistic()
+    #         print("Total Thumbs Up Count : "+str(thumbUpCount))
+    #         thumbUpAlgo.printHighestDistanceGroupingStatistic()
+    #         print("Total Close Count : "+str(closeCount))
+    #         closeAlgo.printHighestDistanceGroupingStatistic()
+    #         print("Total OK Count : "+str(okayCount))
+    #         okayAlgo.printHighestDistanceGroupingStatistic()
             
-            break
-        number, mode = select_mode(key, mode)
+    #         break
+    #     number, mode = select_mode(key, mode)
 
-        # means if the camera capture something, then ret is True. Else ret is False.
-        ret, image = cap.read()
-        if not ret:
-            break
-        image = cv.flip(image, 1)
-        debug_image = copy.deepcopy(image)
+    #     # means if the camera capture something, then ret is True. Else ret is False.
+    #     ret, image = cap.read()
+    #     if not ret:
+    #         break
+    #     image = cv.flip(image, 1)
+    #     debug_image = copy.deepcopy(image)
 
-        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+    #     image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
 
-        image.flags.writeable = False
-        results = hands.process(image)
-        image.flags.writeable = True
+    #     image.flags.writeable = False
+    #     results = hands.process(image)
+    #     image.flags.writeable = True
 
-        # multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
-        if results.multi_hand_landmarks is not None:
-            for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
-                                                  results.multi_handedness):
-                brect = calc_bounding_rect(debug_image, hand_landmarks)
-                # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
-                landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+    #     # multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
+    #     if results.multi_hand_landmarks is not None:
+    #         for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
+    #                                               results.multi_handedness):
+    #             brect = calc_bounding_rect(debug_image, hand_landmarks)
+    #             # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
+    #             landmark_list = calc_landmark_list(debug_image, hand_landmarks)
 
-                # pre_process_landmark() will normalise a list of landmarks
-                pre_processed_landmark_list = pre_process_landmark(
-                    landmark_list)
-                # pre_process_point_history will normalise a list of point history
-                pre_processed_point_history_list = pre_process_point_history(
-                    debug_image, point_history)
-                logging_csv(number, mode, pre_processed_landmark_list,
-                            pre_processed_point_history_list)
+    #             # pre_process_landmark() will normalise a list of landmarks
+    #             pre_processed_landmark_list = pre_process_landmark(
+    #                 landmark_list)
+    #             # pre_process_point_history will normalise a list of point history
+    #             pre_processed_point_history_list = pre_process_point_history(
+    #                 debug_image, point_history)
+    #             logging_csv(number, mode, pre_processed_landmark_list,
+    #                         pre_processed_point_history_list)
 
-                # keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
-                hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
-                if hand_sign_id == 2:
-                    point_history.append(landmark_list[8])
-                else:
-                    point_history.append([0, 0])
+    #             # keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
+    #             hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+    #             if hand_sign_id == 2:
+    #                 point_history.append(landmark_list[8])
+    #             else:
+    #                 point_history.append([0, 0])
 
-                finger_gesture_id = 0
-                point_history_len = len(pre_processed_point_history_list)
-                if point_history_len == (history_length * 2):
-                    finger_gesture_id = point_history_classifier(
-                        pre_processed_point_history_list)
+    #             finger_gesture_id = 0
+    #             point_history_len = len(pre_processed_point_history_list)
+    #             if point_history_len == (history_length * 2):
+    #                 finger_gesture_id = point_history_classifier(
+    #                     pre_processed_point_history_list)
 
-                finger_gesture_history.append(finger_gesture_id)
-                most_common_fg_id = Counter(
-                    finger_gesture_history).most_common()
+    #             finger_gesture_history.append(finger_gesture_id)
+    #             most_common_fg_id = Counter(
+    #                 finger_gesture_history).most_common()
                 
-                if is_middle_finger_up(hand_landmarks.landmark):
-                    gesture_text = "Middle Finger"
-                    print("Fuck youuuu")
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                elif is_close(hand_landmarks.landmark):
-                    gesture_text = "Close"
-                    closeCount += 1
-                    print("Close")
-                    closeAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                elif is_thumb_up(hand_landmarks.landmark):
-                    gesture_text = "Thumb Up"
-                    print("Thumb up")
-                    thumbUpCount += 1
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                    thumbUpAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
+    #             if is_middle_finger_up(hand_landmarks.landmark):
+    #                 gesture_text = "Middle Finger"
+    #                 print("Fuck youuuu")
+    #                 # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+    #             elif is_close(hand_landmarks.landmark):
+    #                 gesture_text = "Close"
+    #                 closeCount += 1
+    #                 print("Close")
+    #                 closeAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
+    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
+    #             elif is_thumb_up(hand_landmarks.landmark):
+    #                 gesture_text = "Thumb Up"
+    #                 print("Thumb up")
+    #                 thumbUpCount += 1
+    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
+    #                 thumbUpAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
                     
-                elif is_thumb_down(hand_landmarks.landmark):
-                    gesture_text = "Thumb Down"
-                    thumbDownCount += 1
-                    print("Thumb down")
-                    thumbDownAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                elif is_peace_sign(hand_landmarks.landmark):
-                    gesture_text = "Peace Sign"
-                    print("RIP")
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                elif is_ok_sign(hand_landmarks.landmark):
-                    gesture_text = "OK Sign"
-                    okayCount += 1
-                    print("Ogay")
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                    okayAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                elif is_fist(hand_landmarks.landmark):
-                    gesture_text = "Fist"
-                    print("Bagelo")
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                else:
-                    gesture_text = keypoint_classifier_labels[hand_sign_id]
-                    print("Unknown: "+gesture_text)
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+    #             elif is_thumb_down(hand_landmarks.landmark):
+    #                 gesture_text = "Thumb Down"
+    #                 thumbDownCount += 1
+    #                 print("Thumb down")
+    #                 thumbDownAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
+    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
+    #             elif is_peace_sign(hand_landmarks.landmark):
+    #                 gesture_text = "Peace Sign"
+    #                 print("RIP")
+    #                 # printDistanceBetweenLandmarks(hand_landmarks.landmark)
+    #             elif is_ok_sign(hand_landmarks.landmark):
+    #                 gesture_text = "OK Sign"
+    #                 okayCount += 1
+    #                 print("Ogay")
+    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
+    #                 okayAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
+    #             elif is_fist(hand_landmarks.landmark):
+    #                 gesture_text = "Fist"
+    #                 print("Bagelo")
+    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
+    #             else:
+    #                 gesture_text = keypoint_classifier_labels[hand_sign_id]
+    #                 print("Unknown: "+gesture_text)
+    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
 
-                debug_image = draw_bounding_rect(use_brect, debug_image, brect)
-                debug_image = draw_landmarks(debug_image, landmark_list)
-                debug_image = draw_info_text(
-                    debug_image,
-                    brect,
-                    handedness,
-                    gesture_text,
-                    point_history_classifier_labels[most_common_fg_id[0][0]],
-                )
+    #             debug_image = draw_bounding_rect(use_brect, debug_image, brect)
+    #             debug_image = draw_landmarks(debug_image, landmark_list)
+    #             debug_image = draw_info_text(
+    #                 debug_image,
+    #                 brect,
+    #                 handedness,
+    #                 gesture_text,
+    #                 point_history_classifier_labels[most_common_fg_id[0][0]],
+    #             )
                 
-                # print("gesture_text : "+gesture_text)
+    #             # print("gesture_text : "+gesture_text)
 
-                if (is_middle_finger_up(hand_landmarks.landmark) or
-                    is_thumb_up(hand_landmarks.landmark) or
-                    is_thumb_down(hand_landmarks.landmark) or
-                    is_peace_sign(hand_landmarks.landmark) or
-                    is_ok_sign(hand_landmarks.landmark) or
-                    is_fist(hand_landmarks.landmark)):
-                    asyncio.run(press_key_throttled(gesture_to_key[gesture_text]))
-        else:
-            point_history.append([0, 0])
+    #             if (is_middle_finger_up(hand_landmarks.landmark) or
+    #                 is_thumb_up(hand_landmarks.landmark) or
+    #                 is_thumb_down(hand_landmarks.landmark) or
+    #                 is_peace_sign(hand_landmarks.landmark) or
+    #                 is_ok_sign(hand_landmarks.landmark) or
+    #                 is_fist(hand_landmarks.landmark)):
+    #                 asyncio.run(press_key_throttled(gesture_to_key[gesture_text]))
+    #     else:
+    #         point_history.append([0, 0])
 
-        debug_image = draw_point_history(debug_image, point_history)
-        debug_image = draw_info(debug_image, fps, mode, number)
+    #     debug_image = draw_point_history(debug_image, point_history)
+    #     debug_image = draw_info(debug_image, fps, mode, number)
 
-        cv.imshow('HGR To Play Games', debug_image)
+    #     cv.imshow('HGR To Play Games', debug_image)
 
-    cap.release()
-    cv.destroyAllWindows()
+    # cap.release()
+    # cv.destroyAllWindows()
 
 
 def select_mode(key, mode):
