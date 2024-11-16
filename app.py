@@ -93,8 +93,8 @@ class mainMenuUI(ttk.Frame):
         testingBtn = buildButton(self, "Test Hand Gestures", initiateWebCam, None)
         testingBtn.pack(padx=20, pady=20)
         
-        # startGameBtn = buildButton(self, "Start Game", lambda: controller.navigateTo())
-        # startGameBtn.pack(padx=20, pady=20)
+        startGameBtn = buildButton(self, "Start Game", initiateWebCam, None)
+        startGameBtn.pack(padx=20, pady=20)
         
     def getIdentity():
         return MAINMENU_UI
@@ -159,6 +159,7 @@ class testingHGUI(ttk.Frame):
         
     def getIdentity():
         return TESTING_HG_UI
+
         
 def buildButton(frame, text, actionFunc, pageName):
     
