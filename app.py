@@ -34,8 +34,14 @@ MAINMENU_UI = "mainMenuUI"
 PREDEFINED_HG_UI = "predefinedHandGesturesUI"
 CUSTOM_HG_UI = "customHandGesturesUI"
 TESTING_HG_UI = "testingHandGesturesUI"
+PREDEFINED_HG_KEYBOARD_UI = "predefinedHandGesturesKeyboardUI"
+PREDEFINED_HG_MOUSE_UI = "predefinedHandGesturesMouseUI"
+CUSTOM_HG_KEYBOARD_UI = "customHandGesturesKeyboardUI"
+CUSTOM_HG_MOUSE_UI = "customHandGesturesMouseUI"
 
 frameList={}
+keyboardGesturesList = ["Middle Finger", "Thumb Up", "Thumb Down", "Peace Sign", "OK Sign", "Fist", "Close"]
+mouseGesturesList = ["Left Click", "Right Click", "Scroll Up", "Scroll Down"]
 
 def navigateTo(page):
     if page in frameList:
@@ -61,7 +67,7 @@ class Root(tk.Tk):
         
         # self.frames = {}
         
-        for page in (mainMenuUI, predefinedHandGesturesUI, customHandGesturesUI):
+        for page in (mainMenuUI, predefinedHandGesturesUI, customHandGesturesUI, predefinedHandGesturesKeyboardUI, predefinedHandGesturesMouseUI):
             print(f"Initializing frame for {page.getIdentity()}")
             frame = page(mainFrame, self)
             frameList[page.getIdentity()] = frame
@@ -76,9 +82,9 @@ class Root(tk.Tk):
 
 class mainMenuUI(ttk.Frame):
     
-    def __init__(self, parent, controller):
-        super().__init__(parent)
-        self.controller = controller
+    def __init__(self, mainFrame, root):
+        super().__init__(mainFrame)
+        self.root = root
         
         title = Label(self, text=mainMenuTitle, font=titleSize)
         title.pack()
@@ -101,15 +107,15 @@ class mainMenuUI(ttk.Frame):
         
 class predefinedHandGesturesUI(ttk.Frame):
     
-    def __init__(self, parent, controller):
-        super().__init__(parent, padding=20)
-        self.controller = controller
+    def __init__(self, mainFrame, root):
+        super().__init__(mainFrame, padding=20)
+        self.root = root
         
         title = Label(self, text=predefinedHGTitle, font=titleSize)
         title.pack()
         
-        keyboardBtn = buildButton(self, "Keyboard", navigateTo, "TOCHANGE")
-        mouseBtn = buildButton(self, "Mouse", navigateTo, "TOCHANGE")
+        keyboardBtn = buildButton(self, "Keyboard", navigateTo, PREDEFINED_HG_KEYBOARD_UI)
+        mouseBtn = buildButton(self, "Mouse", navigateTo, PREDEFINED_HG_MOUSE_UI)
         doneBtn = buildButtonWithColor(self, "Done", navigateTo, MAINMENU_UI, "green")
         
         keyboardBtn.pack(padx=20, pady=20)
@@ -122,9 +128,9 @@ class predefinedHandGesturesUI(ttk.Frame):
 
 class customHandGesturesUI(ttk.Frame):
     
-    def __init__(self, parent, controller):
-        super().__init__(parent, padding=20)
-        self.controller = controller
+    def __init__(self, mainFrame, root):
+        super().__init__(mainFrame, padding=20)
+        self.root = root
         
         title = Label(self, text=customHGTitle, font=titleSize)
         title.pack()
@@ -139,12 +145,148 @@ class customHandGesturesUI(ttk.Frame):
         
     def getIdentity():
         return CUSTOM_HG_UI  
+
+class predefinedHandGesturesKeyboardUI(ttk.Frame):
+    
+    def __init__(self, mainFrame, root):
+        super().__init__(mainFrame, padding=20)
+        self.root = root
+        self.gesture_to_key = {}
+        
+        title = Label(self, text=predefinedHGTitle+"->"+keyboardTitle, font=titleSize)
+        title.grid()
+        
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure('TButton', font=('Arial', 12), padding=5)
+        style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
+        style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
+        style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
+                
+        # Header Label
+        # header_label = ttk.Label(self, text="Map Gestures to Key Presses", style='Header.TLabel')
+        # header_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        
+        # Add labels and buttons for each gesture
+        for idx, gesture in enumerate(keyboardGesturesList):
+            label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
+            label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
+            
+            button = ttk.Button(self, text="Click to record", command=lambda g=gesture, l=label: self.enable_recording(g, l))
+            button.grid(row=idx + 1, column=1, padx=10, pady=10)
+            
+            # Add hover effect to buttons
+            def on_enter(event, b=button):
+                b.config(style='Hover.TButton')
+            
+            def on_leave(event, b=button):
+                b.config(style='TButton')
+                
+            button.bind("<Enter>", on_enter)
+            button.bind("<Leave>", on_leave)
+            
+        
+        # Add a proceed button
+        # proceed_button = ttk.Button(self, text="Proceed", command=self.proceed, style='TButton')
+        proceed_button = buildButton(self, "Done", navigateTo, PREDEFINED_HG_UI)
+        proceed_button.grid(row=len(keyboardGesturesList) + 2, column=0, columnspan=2, pady=20)
+        
+    def record_key(self, event, gesture, label):
+        # Store the hexadecimal code of the key using ord()
+        vk_code = win32api.VkKeyScan(event.char)
+        self.gesture_to_key[gesture] = vk_code
+        label.config(text=f"{gesture}: {vk_code}", foreground="green")
+        self.root.unbind("<Key>")
+
+    # Define a function to enable key recording
+    def enable_recording(self, gesture, label):
+        label.config(text=f"{gesture}: Press any key...", foreground="orange")
+        self.root.bind("<Key>", lambda event: self.record_key(event, gesture, label))
+
+    # Define a function that will be called when the user clicks "Proceed"
+    def proceed(self):
+        print("Gesture to key mapping:")
+        for gesture, hex_code in self.gesture_to_key.items():
+            print(f"{gesture}: {hex_code}")
+        # Here you can add any additional actions for when the proceed button is pressed
+        self.root.quit()
+        
+    def getIdentity():
+        return PREDEFINED_HG_KEYBOARD_UI
+    
+class predefinedHandGesturesMouseUI(ttk.Frame):
+    
+    def __init__(self, mainFrame, root):
+        super().__init__(mainFrame, padding=20)
+        self.root = root
+        self.gesture_to_key = {}
+        
+        title = Label(self, text=predefinedHGTitle+"->"+mouseTitle, font=titleSize)
+        title.grid()
+        
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure('TButton', font=('Arial', 12), padding=5)
+        style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
+        style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
+        style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
+                
+        # Header Label
+        # header_label = ttk.Label(self, text="Map Gestures to Key Presses", style='Header.TLabel')
+        # header_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        
+        # Add labels and buttons for each gesture
+        for idx, gesture in enumerate(mouseGesturesList):
+            label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
+            label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
+            
+            button = ttk.Button(self, text="Click to record", command=lambda g=gesture, l=label: self.enable_recording(g, l))
+            button.grid(row=idx + 1, column=1, padx=10, pady=10)
+            
+            # Add hover effect to buttons
+            def on_enter(event, b=button):
+                b.config(style='Hover.TButton')
+            
+            def on_leave(event, b=button):
+                b.config(style='TButton')
+                
+            button.bind("<Enter>", on_enter)
+            button.bind("<Leave>", on_leave)
+            
+        
+        # Add a proceed button
+        # proceed_button = ttk.Button(self, text="Proceed", command=self.proceed, style='TButton')
+        proceed_button = buildButton(self, "Done", navigateTo, PREDEFINED_HG_UI)
+        proceed_button.grid(row=len(mouseGesturesList) + 2, column=0, columnspan=2, pady=20)
+        
+    def record_key(self, event, gesture, label):
+        # Store the hexadecimal code of the key using ord()
+        vk_code = win32api.VkKeyScan(event.char)
+        self.gesture_to_key[gesture] = vk_code
+        label.config(text=f"{gesture}: {vk_code}", foreground="green")
+        self.root.unbind("<Key>")
+
+    # Define a function to enable key recording
+    def enable_recording(self, gesture, label):
+        label.config(text=f"{gesture}: Press any key...", foreground="orange")
+        self.root.bind("<Key>", lambda event: self.record_key(event, gesture, label))
+
+    # Define a function that will be called when the user clicks "Proceed"
+    def proceed(self):
+        print("Gesture to key mapping:")
+        for gesture, hex_code in self.gesture_to_key.items():
+            print(f"{gesture}: {hex_code}")
+        # Here you can add any additional actions for when the proceed button is pressed
+        self.root.quit()
+        
+    def getIdentity():
+        return PREDEFINED_HG_MOUSE_UI
         
 class testingHGUI(ttk.Frame):
     
-    def __init__(self, parent, controller):
-        super().__init__(parent, padding=20)
-        self.controller = controller
+    def __init__(self, mainFrame, root):
+        super().__init__(mainFrame, padding=20)
+        self.root = root
         
         title = Label(self, text=customHGTitle, font=titleSize)
         title.pack()
