@@ -29,57 +29,80 @@ from distanceGroup import DistanceGroup
 THROTTLE_TIME = 1
 last_key_press_time = 0
 
+# global variable
+MAINMENU_UI = "mainMenuUI"
+PREDEFINED_HG_UI = "predefinedHandGesturesUI"
+CUSTOM_HG_UI = "customHandGesturesUI"
+TESTING_HG_UI = "testingHandGesturesUI"
+
+frameList={}
+
+def navigateTo(page):
+    if page in frameList:
+        frame = frameList[page]
+        frame.tkraise()
+        print(f"Frame {page} get loaded")
+    else:
+        print(f"Page {page} not found.")
+
 class Root(tk.Tk):
     def __init__(self):
         super().__init__()
+        
         self.title("Main Menu")
         self.geometry("500x500")
         self.configure(bg="#f0f0f0")
         
         mainFrame = Frame(self)
+        mainFrame.pack(fill="both", expand=True)
         
-        self.frames = {}
+        mainFrame.grid_rowconfigure(0, weight=1)
+        mainFrame.grid_columnconfigure(0, weight=1)
+        
+        # self.frames = {}
         
         for page in (mainMenuUI, predefinedHandGesturesUI, customHandGesturesUI):
-            print(f"Initializing frame for {page.__name__}")
+            print(f"Initializing frame for {page.getIdentity()}")
             frame = page(mainFrame, self)
-            self.frames[page] = frame
-            frame.grid(row=0, column=0, sticky=(W, E, N, S))
+            frameList[page.getIdentity()] = frame
+            frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+            
+        print("frames count: {0}".format(str(len(frameList))))
+            
+        for x in frameList:
+            print("frames item: {0}".format(x))
         
-        self.navigateTo(mainMenuUI)
-    
-    def navigateTo(self, page):
-        if page in self.frames:
-            frame = self.frames[page]
-            frame.tkraise()
-        else:
-            print(f"Page {page.__name__} not found.")
+        navigateTo(MAINMENU_UI)
 
 class mainMenuUI(ttk.Frame):
     
     def __init__(self, parent, controller):
-        super().__init__()
+        super().__init__(parent)
         self.controller = controller
         
         title = Label(self, text=mainMenuTitle, font=titleSize)
         title.pack()
         
-        predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", lambda: controller.navigateTo(predefinedHandGesturesUI))
+        # predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", lambda: controller.navigateTo(PREDEFINED_HG_UI))
+        predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", PREDEFINED_HG_UI)
         predefinedHandGesturesBtn.pack(padx=20, pady=20)
         
-        customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", lambda: controller.navigateTo(customHandGesturesUI))
+        customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", CUSTOM_HG_UI)
         customHandGesturesBtn.pack(padx=20, pady=20)
         
-        testingBtn = buildButton(self, "Test Hand Gestures", lambda: controller.navigateTo(testingHGUI))
+        testingBtn = buildButton(self, "Test Hand Gestures", TESTING_HG_UI)
         testingBtn.pack(padx=20, pady=20)
         
         # startGameBtn = buildButton(self, "Start Game", lambda: controller.navigateTo())
         # startGameBtn.pack(padx=20, pady=20)
         
+    def getIdentity():
+        return MAINMENU_UI
+        
 class predefinedHandGesturesUI(ttk.Frame):
     
     def __init__(self, parent, controller):
-        super().__init__(parent)
+        super().__init__(parent, padding=20)
         self.controller = controller
         
         title = Label(self, text=predefinedHGTitle, font=titleSize)
@@ -87,17 +110,20 @@ class predefinedHandGesturesUI(ttk.Frame):
         
         # keyboardBtn = buildButton(self, "Keyboard", )
         # mouseBtn = buildButton(self, "Mouse", )
-        # doneBtn = buildButton(self, "Done", , "green")
+        doneBtn = buildButtonWithColor(self, "Done", MAINMENU_UI, "green")
         
         # keyboardBtn.pack(padx=20, pady=20)
         # mouseBtn.pack(padx=20, pady=20)
-        # doneBtn.pack(padx=20, pady=20)
+        doneBtn.pack(padx=20, pady=20)
+        
+    def getIdentity():
+        return PREDEFINED_HG_UI
         
 
 class customHandGesturesUI(ttk.Frame):
     
     def __init__(self, parent, controller):
-        super().__init__(parent)
+        super().__init__(parent, padding=20)
         self.controller = controller
         
         title = Label(self, text=customHGTitle, font=titleSize)
@@ -105,16 +131,19 @@ class customHandGesturesUI(ttk.Frame):
         
         # keyboardBtn = buildButton(self, "Keyboard", )
         # mouseBtn = buildButton(self, "Mouse", )
-        # doneBtn = buildButton(self, "Done", , "green")
+        doneBtn = buildButtonWithColor(self, "Done", MAINMENU_UI, "green")
         
         # keyboardBtn.pack(padx=20, pady=20)
         # mouseBtn.pack(padx=20, pady=20)
-        # doneBtn.pack(padx=20, pady=20)  
+        doneBtn.pack(padx=20, pady=20)
+        
+    def getIdentity():
+        return CUSTOM_HG_UI  
         
 class testingHGUI(ttk.Frame):
     
     def __init__(self, parent, controller):
-        super().__init__(parent)
+        super().__init__(parent, padding=20)
         self.controller = controller
         
         title = Label(self, text=customHGTitle, font=titleSize)
@@ -128,12 +157,15 @@ class testingHGUI(ttk.Frame):
         # mouseBtn.pack(padx=20, pady=20)
         # doneBtn.pack(padx=20, pady=20)
         
-def buildButton(frame, text, actionFunc):
+    def getIdentity():
+        return TESTING_HG_UI
+        
+def buildButton(frame, text, pageName):
     
     button = Button(
         frame,
         text=text,
-        command= actionFunc(),
+        command= lambda: navigateTo(pageName),
         activebackground="blue",
         activeforeground="white",
         anchor="center",
@@ -157,14 +189,14 @@ def buildButton(frame, text, actionFunc):
     
     return button
 
-def buildButtonWithColor(frame, text, actionFunc, color):
+def buildButtonWithColor(frame, text, pageName, color):
     
     button = Button(
         frame,
         text=text,
-        command= actionFunc(),
-        activebackground=color,
-        activeforeground="white",
+        command= lambda: navigateTo(pageName),
+        activebackground="blue",
+        activeforeground=color,
         anchor="center",
         bd=3,
         bg="lightgray",
