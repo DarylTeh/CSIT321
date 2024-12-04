@@ -23,6 +23,7 @@ from model import PointHistoryClassifier
 THROTTLE_TIME = 1
 last_key_press_time = 0
 
+
 async def press_key_throttled(hex_key_code):
     global last_key_press_time
     current_time = time.time()
@@ -34,59 +35,63 @@ async def press_key_throttled(hex_key_code):
         win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
         last_key_press_time = current_time
 
+
 def is_thumb_up(landmarks):
     # Thumb up: Thumb straight, other fingers clenched
     thumb_tip = landmarks[4]
     thumb_base = landmarks[1]
-    
+
     # Check if thumb is straight up (x, y coordinate check based on the angle of thumb)
     is_thumb_straight = thumb_tip.y < thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
-    
+
     # Check if other fingers are clenched
     are_other_fingers_clenched = (
-        landmarks[8].y > landmarks[6].y and  # Index finger clenched
-        landmarks[12].y > landmarks[10].y and  # Middle finger clenched
-        landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-        landmarks[20].y > landmarks[18].y    # Pinky clenched
+            landmarks[8].y > landmarks[6].y and  # Index finger clenched
+            landmarks[12].y > landmarks[10].y and  # Middle finger clenched
+            landmarks[16].y > landmarks[14].y and  # Ring finger clenched
+            landmarks[20].y > landmarks[18].y  # Pinky clenched
     )
-    
+
     return is_thumb_straight and are_other_fingers_clenched
+
 
 def is_thumb_down(landmarks):
     # Thumb down: Thumb straight, other fingers clenched
     thumb_tip = landmarks[4]
     thumb_base = landmarks[1]
-    
+
     # Check if thumb is straight down (x, y coordinate check based on the angle of thumb)
     is_thumb_straight = thumb_tip.y > thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
-    
+
     # Check if other fingers are clenched
     are_other_fingers_clenched = (
-        landmarks[8].y > landmarks[6].y and  # Index finger clenched
-        landmarks[12].y > landmarks[10].y and  # Middle finger clenched
-        landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-        landmarks[20].y > landmarks[18].y    # Pinky clenched
+            landmarks[8].y > landmarks[6].y and  # Index finger clenched
+            landmarks[12].y > landmarks[10].y and  # Middle finger clenched
+            landmarks[16].y > landmarks[14].y and  # Ring finger clenched
+            landmarks[20].y > landmarks[18].y  # Pinky clenched
     )
-    
+
     return is_thumb_straight and are_other_fingers_clenched
+
 
 def is_middle_finger_up(landmarks):
     # Middle finger up: Middle finger raised, others clenched
     middle_finger_tip = landmarks[12]
     ring_finger_tip = landmarks[16]
     index_finger_tip = landmarks[8]
-    
+
     # Check if middle finger is raised
     is_middle_raised = middle_finger_tip.y < ring_finger_tip.y and middle_finger_tip.y < index_finger_tip.y
-    
+
     # Check if other fingers are clenched
     are_other_fingers_clenched = (
-        landmarks[8].y > landmarks[6].y and  # Index finger clenched
-        landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-        landmarks[20].y > landmarks[18].y    # Pinky clenched
+            landmarks[8].y > landmarks[6].y and  # Index finger clenched
+            landmarks[16].y > landmarks[14].y and  # Ring finger clenched
+            landmarks[20].y > landmarks[18].y  # Pinky clenched
     )
-    
+
     return is_middle_raised and are_other_fingers_clenched
+
 
 def is_peace_sign(landmarks):
     # Peace sign (V sign): Index and middle finger raised, others clenched
@@ -97,32 +102,34 @@ def is_peace_sign(landmarks):
 
     # Check if index and middle fingers are raised
     are_index_and_middle_raised = index_finger_tip.y < landmarks[6].y and middle_finger_tip.y < landmarks[10].y
-    
+
     # Check if ring and pinky fingers are clenched
     are_ring_and_pinky_clenched = (
-        ring_finger_tip.y > landmarks[14].y and  # Ring finger clenched
-        pinky_tip.y > landmarks[18].y            # Pinky clenched
+            ring_finger_tip.y > landmarks[14].y and  # Ring finger clenched
+            pinky_tip.y > landmarks[18].y  # Pinky clenched
     )
-    
+
     return are_index_and_middle_raised and are_ring_and_pinky_clenched
+
 
 def is_ok_sign(landmarks):
     # OK sign: Thumb and index finger touch to form a circle, other fingers clenched
     thumb_tip = landmarks[4]
     index_finger_tip = landmarks[8]
     thumb_index_distance = ((thumb_tip.x - index_finger_tip.x) ** 2 + (thumb_tip.y - index_finger_tip.y) ** 2) ** 0.5
-    
+
     # Check if thumb and index finger are touching (distance between tips is small)
     is_thumb_index_touching = thumb_index_distance < 0.05
-    
+
     # Check if other fingers are clenched
     are_other_fingers_clenched = (
-        landmarks[12].y > landmarks[10].y and  # Middle finger clenched
-        landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-        landmarks[20].y > landmarks[18].y      # Pinky clenched
+            landmarks[12].y > landmarks[10].y and  # Middle finger clenched
+            landmarks[16].y > landmarks[14].y and  # Ring finger clenched
+            landmarks[20].y > landmarks[18].y  # Pinky clenched
     )
-    
+
     return is_thumb_index_touching and are_other_fingers_clenched
+
 
 def is_fist(landmarks):
     # Fist: All fingers clenched, thumb across the palm
@@ -131,19 +138,20 @@ def is_fist(landmarks):
     middle_finger_tip = landmarks[12]
     ring_finger_tip = landmarks[16]
     pinky_tip = landmarks[20]
-    
+
     # Check if all fingers are clenched
     are_all_fingers_clenched = (
-        index_finger_tip.y > landmarks[6].y and  # Index finger clenched
-        middle_finger_tip.y > landmarks[10].y and  # Middle finger clenched
-        ring_finger_tip.y > landmarks[14].y and  # Ring finger clenched
-        pinky_tip.y > landmarks[18].y            # Pinky clenched
+            index_finger_tip.y > landmarks[6].y and  # Index finger clenched
+            middle_finger_tip.y > landmarks[10].y and  # Middle finger clenched
+            ring_finger_tip.y > landmarks[14].y and  # Ring finger clenched
+            pinky_tip.y > landmarks[18].y  # Pinky clenched
     )
-    
+
     # Check if thumb is across the palm
     is_thumb_clenched = thumb_tip.x < landmarks[3].x  # Thumb crosses inward
-    
+
     return are_all_fingers_clenched and is_thumb_clenched
+
 
 def smooth_landmarks(current_landmarks, prev_landmarks, smoothing_factor=0.5):
     if prev_landmarks is None:
@@ -162,6 +170,60 @@ def smooth_landmarks(current_landmarks, prev_landmarks, smoothing_factor=0.5):
         smoothed_landmarks.append(smoothed_landmark)
 
     return smoothed_landmarks
+
+
+# TODO write to csv
+
+def write_hand_landmarks_to_csv(video_source=0, output_csv='hand_landmarks.csv'):
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.5)
+    mp_draw = mp.solutions.drawing_utils
+
+    with open(output_csv, mode='w', newline='', encoding='utf-8') as csv_file:
+        csv_writer = csv.writer(csv_file)
+
+        header = ['frame'] + [f"{coord}_{i}" for i in range(21) for coord in ('x', 'y', 'z')]
+        csv_writer.writerow(header)
+
+        cap = cv.VideoCapture(video_source)
+        frame_count = 0
+
+        while cap.isOpened():
+            success, frame = cap.read()
+            if not success:
+                break
+
+            # required by Mediapipe do not remove
+            frame_rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+
+            result = hands.process(frame_rgb)
+
+            # If hand landmarks are detected
+            if result.multi_hand_landmarks:
+                for hand_landmarks in result.multi_hand_landmarks:
+                    landmarks = [
+                        (lm.x, lm.y, lm.z) for lm in hand_landmarks.landmark
+                    ]
+                    flattened_landmarks = [coord for landmark in landmarks for coord in landmark]
+
+                    # Write landmarks for the current frame into the CSV
+                    csv_writer.writerow([frame_count] + flattened_landmarks)
+
+                    # Draw landmarks on the frame (optional)
+                    mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+            # Increment frame count
+            frame_count += 1
+
+            # Display the frame with landmarks (optional)
+            cv.imshow("Hand Tracking", frame)
+            if cv.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to quit
+                break
+
+        # Release the video capture object
+        cap.release()
+        cv.destroyAllWindows()
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -194,7 +256,6 @@ def main():
 
     prev_landmarks = None
     smoothing_factor = 0.5
-
 
     # Create a function to handle keypress events
     def record_key(event, gesture, label):
@@ -242,15 +303,15 @@ def main():
     for idx, gesture in enumerate(gestures):
         label = ttk.Label(frame, text=f"{gesture}: Not assigned", foreground="red")
         label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
-        
-        button = ttk.Button(frame, text="Click to record", 
+
+        button = ttk.Button(frame, text="Click to record",
                             command=lambda g=gesture, l=label: enable_recording(g, l))
         button.grid(row=idx + 1, column=1, padx=10, pady=10)
-        
+
         # Add hover effect to buttons
         def on_enter(event, b=button):
             b.config(style='Hover.TButton')
-        
+
         def on_leave(event, b=button):
             b.config(style='TButton')
 
@@ -265,7 +326,6 @@ def main():
 
     # Run the application
     root.mainloop()
-
 
     args = get_args()
 
