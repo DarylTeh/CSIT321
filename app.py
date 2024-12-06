@@ -636,16 +636,14 @@ def initiateWebCam():
                     gesture_text,
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
-                
-                # print("gesture_text : "+gesture_text)
 
-                if (is_middle_finger_up(hand_landmarks.landmark) or
-                    is_thumb_up(hand_landmarks.landmark) or
-                    is_thumb_down(hand_landmarks.landmark) or
-                    is_peace_sign(hand_landmarks.landmark) or
-                    is_ok_sign(hand_landmarks.landmark) or
-                    is_fist(hand_landmarks.landmark)):
-                    asyncio.run(press_key_throttled(gesture_to_key[gesture_text]))
+                # if (is_middle_finger_up(hand_landmarks.landmark) or
+                #     is_thumb_up(hand_landmarks.landmark) or
+                #     is_thumb_down(hand_landmarks.landmark) or
+                #     is_peace_sign(hand_landmarks.landmark) or
+                #     is_ok_sign(hand_landmarks.landmark) or
+                #     is_fist(hand_landmarks.landmark)):
+                #     asyncio.run(press_key_throttled(gesture_to_key[gesture_text]))
         else:
             point_history.append([0, 0])
 
