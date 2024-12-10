@@ -41,6 +41,7 @@ CUSTOM_HG_MOUSE_UI = "customHandGesturesMouseUI"
 
 frameList={}
 predefinedKeyboardGesturesList = ["Middle Finger", "Thumb Up", "Thumb Down", "Peace Sign", "OK Sign", "Fist", "Close"]
+# predefinedKeyboardGesturesList = []
 predefinedMouseGesturesList = ["Left Click", "Right Click", "Scroll Up", "Scroll Down"]
 customKeyboardGesturesList = []
 customMouseGesturesList = []
@@ -58,7 +59,16 @@ def deleteCustomHG(gesture):
         customKeyboardGesturesList.remove(gesture)
     else:
         print(f"HG {gesture} not exists.")
-    
+
+def populatePredefinedKeyboardGesturesList(predefinedKeyboardGesturesList):
+    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
+        encoding='utf-8-sig') as f:
+        keypoint_classifier_labels = csv.reader(f)
+        predefinedKeyboardGesturesList = [
+            row[0] for row in keypoint_classifier_labels
+        ]
+        print(f"populatePredefinedKeyboardGesturesList(): {len(predefinedKeyboardGesturesList)}")
+    return predefinedKeyboardGesturesList
 
 class Root(tk.Tk):
     def __init__(self):
@@ -171,13 +181,20 @@ class predefinedHandGesturesKeyboardUI(ttk.Frame):
         style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
         style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
         style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
+        
+        predefinedKeyboardGestures = []
                 
         # Header Label
         # header_label = ttk.Label(self, text="Map Gestures to Key Presses", style='Header.TLabel')
         # header_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+
+        #populate predefined keyboard gestures
+        predefinedKeyboardGestures = populatePredefinedKeyboardGesturesList(predefinedKeyboardGestures)
+        
+        print(f"predefinedKeyboardGestures after populated : {len(predefinedKeyboardGestures)}")
         
         # Add labels and buttons for each gesture
-        for idx, gesture in enumerate(predefinedKeyboardGesturesList):
+        for idx, gesture in enumerate(predefinedKeyboardGestures):
             label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
             label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
             
@@ -203,7 +220,8 @@ class predefinedHandGesturesKeyboardUI(ttk.Frame):
     def record_key(self, event, gesture, label):
         # Store the hexadecimal code of the key using ord()
         vk_code = win32api.VkKeyScan(event.char)
-        self.gesture_to_key[gesture] = vk_code
+        # self.gesture_to_key[gesture] = vk_code
+        key_mapping[gesture] = vk_code
         label.config(text=f"{gesture}: {vk_code}", foreground="green")
         self.root.unbind("<Key>")
 
@@ -215,7 +233,8 @@ class predefinedHandGesturesKeyboardUI(ttk.Frame):
     # Define a function that will be called when the user clicks "Proceed"
     def proceed(self):
         print("Gesture to key mapping:")
-        for gesture, hex_code in self.gesture_to_key.items():
+        # for gesture, hex_code in self.gesture_to_key.items():
+        for gesture,hex_code in key_mapping.items():
             print(f"{gesture}: {hex_code}")
         # Here you can add any additional actions for when the proceed button is pressed
         self.root.quit()
@@ -449,16 +468,53 @@ def buildButtonWithColor(frame, text, actionFunc, pageName, color):
 
     #  ===================================================================================================================== User Interfaces ===========================================================================================================
 
-async def press_key_throttled(hex_key_code):
+# key_mapping = {
+#     "Up": 0xC8,       # Arrow Up
+#     "Down": 0xD0,     # Arrow Down
+#     "Left": 0xCB,     # Arrow Left
+#     "Right": 0xCD,    # Arrow Right
+#     "Start": 0x13,    # Start (example, modify as needed)
+#     "Select": 0x1F,   # Select (example, modify as needed)
+#     "A": 0x1C,        # A key
+#     "B": 0x1D         # B key
+# }
+
+key_mapping = {
+    "Up": 0x26,       # VK_UP (Arrow Up)
+    "Down": 0x28,     # VK_DOWN (Arrow Down)
+    "Left": 0x25,     # VK_LEFT (Arrow Left)
+    "Right": 0x27,    # VK_RIGHT (Arrow Right)
+    "Start": 0x0D,    # VK_RETURN (Enter/Start)
+    "Select": 0x20,   # VK_SPACE (Space/Select)
+    "A": 0x41,        # A key
+    "B": 0x42         # B key
+}
+
+
+async def press_key_throttled(key_name):
     global last_key_press_time
     current_time = time.time()
-    # Check if the time since the last keypress is greater than the throttle time.
+
+    # Ensure the key_name is valid
+    if key_name not in key_mapping:
+        print(f"Invalid key name: {key_name}")
+        return
+
+    # Get the hex key code for the provided key name
+    hex_key_code = key_mapping[key_name]
+    print(f"hexKeyCode: {hex_key_code}")
+
+    # Check if the time since the last key press is greater than the throttle time.
     if current_time - last_key_press_time >= THROTTLE_TIME:
+        # Press the key down
         win32api.keybd_event(hex_key_code, 0, 0, 0)
         time.sleep(0.2)  # Short delay to ensure the key press is registered
-        # Simulates releasing the key
+        
+        # Simulate releasing the key
         win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
         last_key_press_time = current_time
+        
+        print(f"key pressed.")
         
 def initiateWebCam():
     
@@ -526,15 +582,6 @@ def initiateWebCam():
         key = cv.waitKey(10)
         if key == 27:  # ESC
             
-            # print("Total Thumbs Down Count : "+str(thumbDownCount))
-            # thumbDownAlgo.printHighestDistanceGroupingStatistic()
-            # print("Total Thumbs Up Count : "+str(thumbUpCount))
-            # thumbUpAlgo.printHighestDistanceGroupingStatistic()
-            # print("Total Close Count : "+str(closeCount))
-            # closeAlgo.printHighestDistanceGroupingStatistic()
-            # print("Total OK Count : "+str(okayCount))
-            # okayAlgo.printHighestDistanceGroupingStatistic()
-            
             break
         number, mode = select_mode(key, mode)
 
@@ -585,47 +632,8 @@ def initiateWebCam():
                 most_common_fg_id = Counter(
                     finger_gesture_history).most_common()
                 
-                if is_middle_finger_up(hand_landmarks.landmark):
-                    gesture_text = "Middle Finger"
-                    print("Fuck youuuu")
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                elif is_close(hand_landmarks.landmark):
-                    gesture_text = "Close"
-                    closeCount += 1
-                    print("Close")
-                    closeAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                elif is_thumb_up(hand_landmarks.landmark):
-                    gesture_text = "Thumb Up"
-                    print("Thumb up")
-                    thumbUpCount += 1
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                    thumbUpAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                    
-                elif is_thumb_down(hand_landmarks.landmark):
-                    gesture_text = "Thumb Down"
-                    thumbDownCount += 1
-                    print("Thumb down")
-                    thumbDownAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                elif is_peace_sign(hand_landmarks.landmark):
-                    gesture_text = "Peace Sign"
-                    print("RIP")
-                    # printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                elif is_ok_sign(hand_landmarks.landmark):
-                    gesture_text = "OK Sign"
-                    okayCount += 1
-                    print("Ogay")
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                    okayAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                elif is_fist(hand_landmarks.landmark):
-                    gesture_text = "Fist"
-                    print("Bagelo")
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
-                else:
-                    gesture_text = keypoint_classifier_labels[hand_sign_id]
-                    print("Unknown: "+gesture_text)
-                    printDistanceBetweenLandmarks(hand_landmarks.landmark)
+                
+                gesture_text = keypoint_classifier_labels[hand_sign_id]
 
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
                 debug_image = draw_landmarks(debug_image, landmark_list)
@@ -637,13 +645,8 @@ def initiateWebCam():
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
 
-                # if (is_middle_finger_up(hand_landmarks.landmark) or
-                #     is_thumb_up(hand_landmarks.landmark) or
-                #     is_thumb_down(hand_landmarks.landmark) or
-                #     is_peace_sign(hand_landmarks.landmark) or
-                #     is_ok_sign(hand_landmarks.landmark) or
-                #     is_fist(hand_landmarks.landmark)):
-                #     asyncio.run(press_key_throttled(gesture_to_key[gesture_text]))
+                asyncio.run(press_key_throttled(gesture_text))
+                # asyncio.run(press_key_throttled("A"))
         else:
             point_history.append([0, 0])
 
@@ -654,117 +657,6 @@ def initiateWebCam():
 
     cap.release()
     cv.destroyAllWindows()
-
-# def is_thumb_up(landmarks):
-#     # Thumb up: Thumb straight, other fingers clenched
-#     thumb_tip = landmarks[4]
-#     thumb_base = landmarks[1]
-    
-#     # Check if thumb is straight up (x, y coordinate check based on the angle of thumb)
-#     is_thumb_straight = thumb_tip.y < thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
-    
-# #     # Check if other fingers are clenched
-# #     are_other_fingers_clenched = (
-# #         landmarks[8].y > landmarks[6].y and  # Index finger clenched
-# #         landmarks[12].y > landmarks[10].y and  # Middle finger clenched
-# #         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-# #         landmarks[20].y > landmarks[18].y    # Pinky clenched
-# #     )
-    
-#     return is_thumb_straight and are_other_fingers_clenched
-
-# def is_thumb_down(landmarks):
-#     # Thumb down: Thumb straight, other fingers clenched
-#     thumb_tip = landmarks[4]
-#     thumb_base = landmarks[1]
-    
-#     # Check if thumb is straight down (x, y coordinate check based on the angle of thumb)
-#     is_thumb_straight = thumb_tip.y > thumb_base.y and abs(thumb_tip.x - thumb_base.x) < 0.1
-    
-#     # Check if other fingers are clenched
-#     are_other_fingers_clenched = (
-#         landmarks[8].y > landmarks[6].y and  # Index finger clenched
-#         landmarks[12].y > landmarks[10].y and  # Middle finger clenched
-#         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-#         landmarks[20].y > landmarks[18].y    # Pinky clenched
-#     )
-    
-#     return is_thumb_straight and are_other_fingers_clenched
-
-# def is_middle_finger_up(landmarks):
-#     # Middle finger up: Middle finger raised, others clenched
-#     middle_finger_tip = landmarks[12]
-#     ring_finger_tip = landmarks[16]
-#     index_finger_tip = landmarks[8]
-    
-#     # Check if middle finger is raised
-#     is_middle_raised = middle_finger_tip.y < ring_finger_tip.y and middle_finger_tip.y < index_finger_tip.y
-    
-#     # Check if other fingers are clenched
-#     are_other_fingers_clenched = (
-#         landmarks[8].y > landmarks[6].y and  # Index finger clenched
-#         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-#         landmarks[20].y > landmarks[18].y    # Pinky clenched
-#     )
-    
-#     return is_middle_raised and are_other_fingers_clenched
-
-# def is_peace_sign(landmarks):
-#     # Peace sign (V sign): Index and middle finger raised, others clenched
-#     index_finger_tip = landmarks[8]
-#     middle_finger_tip = landmarks[12]
-#     ring_finger_tip = landmarks[16]
-#     pinky_tip = landmarks[20]
-
-#     # Check if index and middle fingers are raised
-#     are_index_and_middle_raised = index_finger_tip.y < landmarks[6].y and middle_finger_tip.y < landmarks[10].y
-    
-#     # Check if ring and pinky fingers are clenched
-#     are_ring_and_pinky_clenched = (
-#         ring_finger_tip.y > landmarks[14].y and  # Ring finger clenched
-#         pinky_tip.y > landmarks[18].y            # Pinky clenched
-#     )
-    
-#     return are_index_and_middle_raised and are_ring_and_pinky_clenched
-
-# def is_ok_sign(landmarks):
-#     # OK sign: Thumb and index finger touch to form a circle, other fingers clenched
-#     thumb_tip = landmarks[4]
-#     index_finger_tip = landmarks[8]
-#     thumb_index_distance = ((thumb_tip.x - index_finger_tip.x) ** 2 + (thumb_tip.y - index_finger_tip.y) ** 2) ** 0.5
-    
-#     # Check if thumb and index finger are touching (distance between tips is small)
-#     is_thumb_index_touching = thumb_index_distance < 0.05
-    
-#     # Check if other fingers are clenched
-#     are_other_fingers_clenched = (
-#         landmarks[12].y > landmarks[10].y and  # Middle finger clenched
-#         landmarks[16].y > landmarks[14].y and  # Ring finger clenched
-#         landmarks[20].y > landmarks[18].y      # Pinky clenched
-#     )
-    
-#     return is_thumb_index_touching and are_other_fingers_clenched
-
-# def is_fist(landmarks):
-#     # Fist: All fingers clenched, thumb across the palm
-#     thumb_tip = landmarks[4]
-#     index_finger_tip = landmarks[8]
-#     middle_finger_tip = landmarks[12]
-#     ring_finger_tip = landmarks[16]
-#     pinky_tip = landmarks[20]
-    
-#     # Check if all fingers are clenched
-#     are_all_fingers_clenched = (
-#         index_finger_tip.y > landmarks[6].y and  # Index finger clenched
-#         middle_finger_tip.y > landmarks[10].y and  # Middle finger clenched
-#         ring_finger_tip.y > landmarks[14].y and  # Ring finger clenched
-#         pinky_tip.y > landmarks[18].y            # Pinky clenched
-#     )
-    
-#     # Check if thumb is across the palm
-#     is_thumb_clenched = thumb_tip.x < landmarks[3].x  # Thumb crosses inward
-    
-#     return are_all_fingers_clenched and is_thumb_clenched
 
 
 def get_args():
