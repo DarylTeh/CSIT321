@@ -38,17 +38,26 @@ PREDEFINED_HG_KEYBOARD_UI = "predefinedHandGesturesKeyboardUI"
 PREDEFINED_HG_MOUSE_UI = "predefinedHandGesturesMouseUI"
 CUSTOM_HG_KEYBOARD_UI = "customHandGesturesKeyboardUI"
 CUSTOM_HG_MOUSE_UI = "customHandGesturesMouseUI"
+NEW_CUSTOM_HG_UI = "newCustomHandGestureForKeyboard"
 
 frameList={}
-predefinedKeyboardGesturesList = ["Middle Finger", "Thumb Up", "Thumb Down", "Peace Sign", "OK Sign", "Fist", "Close"]
-# predefinedKeyboardGesturesList = []
-predefinedMouseGesturesList = ["Left Click", "Right Click", "Scroll Up", "Scroll Down"]
+predefinedKeyboardGesturesList = []
+predefinedMouseGesturesList = []
 customKeyboardGesturesList = []
 customMouseGesturesList = []
+
+def getNextSeqOfKeypointCount():
+    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
+              encoding='utf-8-sig') as f:
+        labels = csv.reader(f)
+        labels_list = [row[0] for row in labels]
+        return len(labels_list)
 
 def navigateTo(page):
     if page in frameList:
         frame = frameList[page]
+        if page in [PREDEFINED_HG_KEYBOARD_UI, PREDEFINED_HG_MOUSE_UI, CUSTOM_HG_KEYBOARD_UI]:
+            frame.populatePageElements()
         frame.tkraise()
         print(f"Frame {page} get loaded")
     else:
@@ -60,16 +69,60 @@ def deleteCustomHG(gesture):
     else:
         print(f"HG {gesture} not exists.")
 
-def populatePredefinedKeyboardGesturesList(predefinedKeyboardGesturesList):
+def populatePredefinedKeyboardGesturesList():
+    global predefinedKeyboardGesturesList
     with open('model/keypoint_classifier/keypoint_classifier_label.csv',
         encoding='utf-8-sig') as f:
         keypoint_classifier_labels = csv.reader(f)
         predefinedKeyboardGesturesList = [
             row[0] for row in keypoint_classifier_labels
         ]
-        print(f"populatePredefinedKeyboardGesturesList(): {len(predefinedKeyboardGesturesList)}")
-    return predefinedKeyboardGesturesList
+        print(f"populatePredefinedKeyboardGesturesList() result: {len(predefinedKeyboardGesturesList)}")
 
+def addHandGestureToCSV(newHG):
+    with open('model/keypoint_classifier/keypoint_classifier_label.csv', mode='a', newline='', encoding='utf-8-sig') as f:
+        writer = csv.writer(f)
+        writer.writerow([newHG])
+        print(f"Added new value to keypoint CSV: {newHG}")
+
+def addNewCustomGesture(newHG_name):
+    enteredHGName = newHG_name.get()
+    print(f"addNewCustomGesture(), argument: {enteredHGName}")
+    if enteredHGName != "":
+        customHG = CustomHandGestureObject(enteredHGName)
+        customKeyboardGesturesList.append(customHG)
+        print(f"customKeyboardGesturesList count: {len(customKeyboardGesturesList)}")
+        newHG_name.delete(0, tk.END)
+        addHandGestureToCSV(enteredHGName)
+    navigateTo(CUSTOM_HG_KEYBOARD_UI) 
+
+def deleteCustomGesture(customHGName, frame):
+    print(f"deleteCustomGesture(), argument: {customHGName}")
+    global customKeyboardGesturesList
+    customKeyboardGesturesList = [obj for obj in customKeyboardGesturesList if obj.name != customHGName]
+    print(f"deleteCustomGesture() updated customKeyboardGesturesList: {len(customKeyboardGesturesList)}")
+    deleteHandGestureFromCSV(customHGName)
+    frame.populatePageElements()
+    
+def deleteHandGestureFromCSV(gesture):
+    with open('model/keypoint_classifier/keypoint_classifier_label.csv', mode='r', encoding='utf-8-sig') as f:
+        rows = list(csv.reader(f))
+        
+    updated_rows = [row for row in rows if row and row[0] != gesture]
+    
+    with open('model/keypoint_classifier/keypoint_classifier_label.csv', mode='w', newline='', encoding='utf-8-sig') as f:
+        writer = csv.writer(f)
+        writer.writerows(updated_rows)
+    
+    print(f"Deleted value from keypoint csv: {gesture}")
+
+
+# def initializeUI():
+
+class CustomHandGestureObject:
+    def __init__(self, name):
+        self.name = name
+        
 class Root(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -84,11 +137,15 @@ class Root(tk.Tk):
         mainFrame.grid_rowconfigure(0, weight=1)
         mainFrame.grid_columnconfigure(0, weight=1)
         
+        populatePredefinedKeyboardGesturesList()
+        
         # self.frames = {}
         
-        for page in (mainMenuUI, predefinedHandGesturesUI, customHandGesturesUI, predefinedHandGesturesKeyboardUI, predefinedHandGesturesMouseUI, customHandGesturesKeyboardUI):
+        for page in (MainMenuUI, PredefinedHandGesturesUI, CustomHandGesturesUI, PredefinedHandGesturesKeyboardUI, PredefinedHandGesturesMouseUI, CustomHandGesturesKeyboardUI, NewCustomHandGestureForKeyboard):
             print(f"Initializing frame for {page.getIdentity()}")
             frame = page(mainFrame, self)
+            # if page.getIdentity() in [PREDEFINED_HG_KEYBOARD_UI, PREDEFINED_HG_MOUSE_UI, CUSTOM_HG_KEYBOARD_UI]:
+            #     page.populatePageElements(frame)
             frameList[page.getIdentity()] = frame
             frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
             
@@ -99,7 +156,7 @@ class Root(tk.Tk):
         
         navigateTo(MAINMENU_UI)
 
-class mainMenuUI(ttk.Frame):
+class MainMenuUI(ttk.Frame):
     
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame)
@@ -120,11 +177,11 @@ class mainMenuUI(ttk.Frame):
         
         startGameBtn = buildButton(self, "Start Game", initiateWebCam, None)
         startGameBtn.pack(padx=20, pady=20)
-        
+                
     def getIdentity():
         return MAINMENU_UI
         
-class predefinedHandGesturesUI(ttk.Frame):
+class PredefinedHandGesturesUI(ttk.Frame):
     
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame, padding=20)
@@ -145,7 +202,7 @@ class predefinedHandGesturesUI(ttk.Frame):
         return PREDEFINED_HG_UI
         
 
-class customHandGesturesUI(ttk.Frame):
+class CustomHandGesturesUI(ttk.Frame):
     
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame, padding=20)
@@ -165,8 +222,9 @@ class customHandGesturesUI(ttk.Frame):
     def getIdentity():
         return CUSTOM_HG_UI  
 
-class predefinedHandGesturesKeyboardUI(ttk.Frame):
-    
+class PredefinedHandGesturesKeyboardUI(ttk.Frame):
+    global predefinedKeyboardGesturesList
+        
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame, padding=20)
         self.root = root
@@ -181,20 +239,17 @@ class predefinedHandGesturesKeyboardUI(ttk.Frame):
         style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
         style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
         style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
-        
-        predefinedKeyboardGestures = []
-                
-        # Header Label
-        # header_label = ttk.Label(self, text="Map Gestures to Key Presses", style='Header.TLabel')
-        # header_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
         #populate predefined keyboard gestures
-        predefinedKeyboardGestures = populatePredefinedKeyboardGesturesList(predefinedKeyboardGestures)
+        # populatePredefinedKeyboardGesturesList(predefinedKeyboardGesturesList)
+        self.populatePageElements()
         
-        print(f"predefinedKeyboardGestures after populated : {len(predefinedKeyboardGestures)}")
         
+    def populatePageElements(self):
+        print(f"PredefinedHandGesturesKeyboardUI populatePageElements()")
+        print(f"PredefinedHandGesturesKeyboardUI predefinedKeyboardGesturesList: {len(predefinedKeyboardGesturesList)}")
         # Add labels and buttons for each gesture
-        for idx, gesture in enumerate(predefinedKeyboardGestures):
+        for idx, gesture in enumerate(predefinedKeyboardGesturesList):
             label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
             label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
             
@@ -242,7 +297,7 @@ class predefinedHandGesturesKeyboardUI(ttk.Frame):
     def getIdentity():
         return PREDEFINED_HG_KEYBOARD_UI
     
-class predefinedHandGesturesMouseUI(ttk.Frame):
+class PredefinedHandGesturesMouseUI(ttk.Frame):
     
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame, padding=20)
@@ -258,11 +313,11 @@ class predefinedHandGesturesMouseUI(ttk.Frame):
         style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
         style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
         style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
-                
-        # Header Label
-        # header_label = ttk.Label(self, text="Map Gestures to Key Presses", style='Header.TLabel')
-        # header_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
-        
+        self.populatePageElements()
+
+    def populatePageElements(self):
+        print(f"PredefinedHandGesturesMouseUI populatePageElements()")
+        print(f"PredefinedHandGesturesMouseUI predefinedMouseGesturesList: {len(predefinedMouseGesturesList)}")
         # Add labels and buttons for each gesture
         for idx, gesture in enumerate(predefinedMouseGesturesList):
             label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
@@ -311,12 +366,13 @@ class predefinedHandGesturesMouseUI(ttk.Frame):
         return PREDEFINED_HG_MOUSE_UI
     
     
-class customHandGesturesKeyboardUI(ttk.Frame):
+class CustomHandGesturesKeyboardUI(ttk.Frame):
     
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame, padding=20)
         self.root = root
         self.gesture_to_key = {}
+        self.custom_key_mapping = {}
         
         title = Label(self, text=CUSTOM_HG_KEYBOARD_UI+"->"+keyboardTitle, font=titleSize)
         title.grid()
@@ -327,42 +383,55 @@ class customHandGesturesKeyboardUI(ttk.Frame):
         style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
         style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
         style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
-                
-        # Header Label
-        # header_label = ttk.Label(self, text="Map Gestures to Key Presses", style='Header.TLabel')
-        # header_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        
+        print(f"customHandGesturesKeyboardUI loaded. customKeyboardGesturesList has {len(customKeyboardGesturesList)} items")
+        self.populatePageElements()
+        
+    def populatePageElements(self):
+        print(f"CustomHandGesturesKeyboardUI populatePageElements()")
+        print(f"CustomHandGesturesKeyboardUI customKeyboardGesturesList: {len(customKeyboardGesturesList)}")
+        
+        for widget in self.winfo_children():
+            widget.destroy()
         
         # Add labels and buttons for each gesture
         if customKeyboardGesturesList:
-            for idx, gesture in enumerate(customKeyboardGesturesList):
-                label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
+            for idx, customHGObject in enumerate(customKeyboardGesturesList):
+                label = ttk.Label(self, text=f"{customHGObject.name}: Not assigned", foreground="red")
                 label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
                 
-                button = ttk.Button(self, text="Click to record", command=lambda g=gesture, l=label: self.enable_recording(g, l))
+                button = ttk.Button(self, text="Click to record", command=lambda g=customHGObject.name, l=label: self.enable_recording(g, l))
                 button.grid(row=idx + 1, column=1, padx=10, pady=10)
                 
-                delete_button = buildButtonWithColor(self, "Delete", delete_button, gesture, "red")
-                delete_button.grid(row=idx+1, column=1, padx=10, pady=10)
+                # delete_button = buildButton(self, "Delete", deleteCustomGesture, customHGObject.name, self)
+                delete_button = ttk.Button(self, text="Delete", command=lambda g=customHGObject.name: deleteCustomGesture(g, self))
+                delete_button.grid(row=idx+1, column=2, padx=10, pady=10)
                 
-                # Add hover effect to buttons
-                def on_enter(event, b=button):
-                    b.config(style='Hover.TButton')
-                
-                def on_leave(event, b=button):
-                    b.config(style='TButton')
+                def hoverButtonEffect(customHGName):
+                    # Add hover effect to buttons
+                    def on_enter(event, b=button):
+                        b.config(style='Hover.TButton')
+                        print(f"Hover over button for customHG {customHGName}")
                     
-                button.bind("<Enter>", on_enter)
-                button.bind("<Leave>", on_leave)
-                delete_button.bind("<Enter>", on_enter)
-                delete_button.bind("<Leave>", on_leave)
+                    def on_leave(event, b=button):
+                        b.config(style='TButton')
+                    
+                    return on_enter, on_leave
+                 
+                record_on_enter, record_on_leave = hoverButtonEffect(customHGObject.name)    
+                button.bind("<Enter>", record_on_enter)
+                button.bind("<Leave>", record_on_leave)
+                delete_on_enter, delete_on_leave = hoverButtonEffect(customHGObject.name)    
+                delete_button.bind("<Enter>", delete_on_enter)
+                delete_button.bind("<Leave>", delete_on_leave)
         
-        add_gesture_button = buildButton(self, "Add New Hand Gesture", navigateTo, "TOCHANGE")
-        add_gesture_button.grid(row=len(customKeyboardGesturesList)+1, column=0, columnspan=2, pady=20)
+        add_gesture_button = buildButton(self, "Add New Hand Gesture", navigateTo, NEW_CUSTOM_HG_UI)
+        add_gesture_button.grid(row=len(customKeyboardGesturesList)+3, column=0, columnspan=2, pady=20)
         
         # Add a proceed button
         # proceed_button = ttk.Button(self, text="Proceed", command=self.proceed, style='TButton')
         proceed_button = buildButton(self, "Done", navigateTo, CUSTOM_HG_UI)
-        proceed_button.grid(row=len(customKeyboardGesturesList) + 2, column=0, columnspan=2, pady=20)
+        proceed_button.grid(row=len(customKeyboardGesturesList) +10, column=0, columnspan=2, pady=20)
         
     def record_key(self, event, gesture, label):
         # Store the hexadecimal code of the key using ord()
@@ -386,8 +455,87 @@ class customHandGesturesKeyboardUI(ttk.Frame):
         
     def getIdentity():
         return CUSTOM_HG_KEYBOARD_UI
+
+class NewCustomHandGestureForKeyboard(ttk.Frame):
+    
+    def __init__(self, mainFrame, root):
+        super().__init__(mainFrame, padding=20)
+        self.root = root
+        self.gesture_to_key = {}
+        self.custom_key_mapping = {}
+        self.newHGName = ''
         
-class testingHGUI(ttk.Frame):
+        newHG_label = Label(self, text='Hand Gesture Name', font=('calibre', 10, 'bold'))
+        newHG_label.grid(row=0, column=0)
+        newHG_entry = Entry(self, textvariable=self.newHGName, font=('calibre',10,'normal'))
+        newHG_entry.grid(row=0, column=1)
+        
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure('TButton', font=('Arial', 12), padding=5)
+        style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
+        style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
+        style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
+        
+        keypointCount = getNextSeqOfKeypointCount()
+        print(f"Total count in keypoints csv: {keypointCount}")
+        
+        # Add labels and buttons for each gesture
+        # if customKeyboardGesturesList:
+        #     for idx, gesture in enumerate(customKeyboardGesturesList):
+        #         label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
+        #         label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
+                
+        #         button = ttk.Button(self, text="Click to record", command=lambda g=gesture, l=label: self.enable_recording(g, l))
+        #         button.grid(row=idx + 1, column=1, padx=10, pady=10)
+                
+        #         delete_button = buildButtonWithColor(self, "Delete", delete_button, gesture, "red")
+        #         delete_button.grid(row=idx+1, column=1, padx=10, pady=10)
+                
+        #         # Add hover effect to buttons
+        #         def on_enter(event, b=button):
+        #             b.config(style='Hover.TButton')
+                
+        #         def on_leave(event, b=button):
+        #             b.config(style='TButton')
+                    
+        #         button.bind("<Enter>", on_enter)
+        #         button.bind("<Leave>", on_leave)
+        #         delete_button.bind("<Enter>", on_enter)
+        #         delete_button.bind("<Leave>", on_leave)
+        
+        # enteredHGName = newHG_entry.get()
+                
+        add_gesture_button = buildButton(self, "Click to record", initiateWebCam, None)
+        add_gesture_button.grid(row=2, column=0, columnspan=2, pady=20)
+        
+        done_button = buildButton(self, "Done", addNewCustomGesture, newHG_entry)
+        done_button.grid(row=4, column=0, columnspan=2, pady=20)
+        
+    def record_key(self, event, gesture, label):
+        # Store the hexadecimal code of the key using ord()
+        vk_code = win32api.VkKeyScan(event.char)
+        self.gesture_to_key[gesture] = vk_code
+        label.config(text=f"{gesture}: {vk_code}", foreground="green")
+        self.root.unbind("<Key>")
+
+    # Define a function to enable key recording
+    def enable_recording(self, gesture, label):
+        label.config(text=f"{gesture}: Press any key...", foreground="orange")
+        self.root.bind("<Key>", lambda event: self.record_key(event, gesture, label))
+
+    # Define a function that will be called when the user clicks "Proceed"
+    def proceed(self):
+        print("Gesture to key mapping:")
+        for gesture, hex_code in self.gesture_to_key.items():
+            print(f"{gesture}: {hex_code}")
+        # Here you can add any additional actions for when the proceed button is pressed
+        self.root.quit()
+        
+    def getIdentity():
+        return NEW_CUSTOM_HG_UI
+        
+class TestingHGUI(ttk.Frame):
     
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame, padding=20)
@@ -408,7 +556,36 @@ class testingHGUI(ttk.Frame):
         return TESTING_HG_UI
 
         
-def buildButton(frame, text, actionFunc, pageName):
+def buildButton(frame, text, actionFunc, *pageName):
+    
+    button = Button(
+        frame,
+        text=text,
+        command= lambda: actionFunc(*pageName) if pageName is not None else actionFunc(),
+        activebackground="blue",
+        activeforeground="white",
+        anchor="center",
+        bd=3,
+        bg="lightgray",
+        cursor="hand2",
+        foreground="black",
+        fg="black",
+        font=("Arial", 12),
+        height=2,
+        highlightbackground="black",
+        highlightcolor="green",
+        highlightthickness=2,
+        justify="center",
+        overrelief="raised",
+        padx=10,
+        pady=5,
+        width=15,
+        wraplength=100
+    )
+    
+    return button
+
+def buildNavigationButton(frame, text, actionFunc, pageName):
     
     button = Button(
         frame,
