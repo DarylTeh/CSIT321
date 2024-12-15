@@ -8,6 +8,8 @@ import win32api
 import win32con
 import tkinter as tk
 from tkinter import ttk
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import load_model
 
 import time
 import asyncio
@@ -40,6 +42,11 @@ CUSTOM_HG_KEYBOARD_UI = "customHandGesturesKeyboardUI"
 CUSTOM_HG_MOUSE_UI = "customHandGesturesMouseUI"
 NEW_CUSTOM_HG_UI = "newCustomHandGestureForKeyboard"
 
+MODEL_SAVE_PATH = "model/keypoint_classifier/keypoint_classifier.keras"
+DATASET_PATH = "model/keypoint_classifier/keypoint.csv"
+RANDOM_SEED = 42
+PREDEFINEDHG_COUNT = 0
+
 frameList={}
 predefinedKeyboardGesturesList = []
 predefinedMouseGesturesList = []
@@ -52,6 +59,13 @@ def getNextSeqOfKeypointCount():
         labels = csv.reader(f)
         labels_list = [row[0] for row in labels]
         return len(labels_list)
+    
+def getIndexOfHGFromCSV(gesture):
+    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
+              encoding='utf-8-sig') as f:
+        labels = csv.reader(f)
+        labels_list = [row[0] for row in labels]
+        return labels_list.index(gesture)
 
 def navigateTo(page):
     if page in frameList:
@@ -69,15 +83,36 @@ def deleteCustomHG(gesture):
     else:
         print(f"HG {gesture} not exists.")
 
-def populatePredefinedKeyboardGesturesList():
-    global predefinedKeyboardGesturesList
+def populatePredefinedAndCustomKeyboardGesturesList():
+    global predefinedKeyboardGesturesList, customKeyboardGesturesList
     with open('model/keypoint_classifier/keypoint_classifier_label.csv',
         encoding='utf-8-sig') as f:
-        keypoint_classifier_labels = csv.reader(f)
+        keypoint_classifier_labels = list(csv.reader(f))
         predefinedKeyboardGesturesList = [
-            row[0] for row in keypoint_classifier_labels
+            row[0] for row in keypoint_classifier_labels[:9]
         ]
         print(f"populatePredefinedKeyboardGesturesList() result: {len(predefinedKeyboardGesturesList)}")
+        customKeyboardGesturesList = [
+            row[0] for row in keypoint_classifier_labels[8:]
+        ]
+        print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
+        
+# def populateCustomKeyboardgesturesList():
+#     global predefinedKeyboardGesturesList, customKeyboardGesturesList
+    
+        
+def produceTrainAndTestDataset():
+    X_dataset = np.loadtxt(DATASET_PATH, delimiter=',', dtype='float32', usecols=list(range(1, (21*2)+1)))
+    y_dataset = np.loadtxt(DATASET_PATH, delimiter=',', dtype='int32', usecols=(0))
+    X_train, X_test, y_train, y_test = train_test_split(X_dataset, y_dataset, train_size=0.75, random_state=RANDOM_SEED)
+    return X_train, X_test, y_train, y_test
+        
+def trainModelWithCustomHandGesture():
+    print(f"trainModelWithCustomHandGesture()")
+    model = load_model(MODEL_SAVE_PATH)
+    model.save(MODEL_SAVE_PATH)
+    X_train, X_test, y_train, y_test = produceTrainAndTestDataset()
+    model.fit(X_train, y_train, epochs=1000, batch_size=128, validation_data=(X_test, y_test))
 
 def addHandGestureToCSV(newHG):
     with open('model/keypoint_classifier/keypoint_classifier_label.csv', mode='a', newline='', encoding='utf-8-sig') as f:
@@ -94,6 +129,7 @@ def addNewCustomGesture(newHG_name):
         print(f"customKeyboardGesturesList count: {len(customKeyboardGesturesList)}")
         newHG_name.delete(0, tk.END)
         addHandGestureToCSV(enteredHGName)
+        # trainModelWithCustomHandGesture()
     navigateTo(CUSTOM_HG_KEYBOARD_UI) 
 
 def deleteCustomGesture(customHGName, frame):
@@ -137,7 +173,7 @@ class Root(tk.Tk):
         mainFrame.grid_rowconfigure(0, weight=1)
         mainFrame.grid_columnconfigure(0, weight=1)
         
-        populatePredefinedKeyboardGesturesList()
+        populatePredefinedAndCustomKeyboardGesturesList()
         
         # self.frames = {}
         
@@ -250,21 +286,22 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         print(f"PredefinedHandGesturesKeyboardUI predefinedKeyboardGesturesList: {len(predefinedKeyboardGesturesList)}")
         # Add labels and buttons for each gesture
         for idx, gesture in enumerate(predefinedKeyboardGesturesList):
-            label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
-            label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
-            
-            button = ttk.Button(self, text="Click to record", command=lambda g=gesture, l=label: self.enable_recording(g, l))
-            button.grid(row=idx + 1, column=1, padx=10, pady=10)
-            
-            # Add hover effect to buttons
-            def on_enter(event, b=button):
-                b.config(style='Hover.TButton')
-            
-            def on_leave(event, b=button):
-                b.config(style='TButton')
+            if idx < len(predefinedKeyboardGesturesList)-1:
+                label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
+                label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
                 
-            button.bind("<Enter>", on_enter)
-            button.bind("<Leave>", on_leave)
+                button = ttk.Button(self, text="Click to record", command=lambda g=gesture, l=label: self.enable_recording(g, l))
+                button.grid(row=idx + 1, column=1, padx=10, pady=10)
+                
+                # Add hover effect to buttons
+                def on_enter(event, b=button):
+                    b.config(style='Hover.TButton')
+                
+                def on_leave(event, b=button):
+                    b.config(style='TButton')
+                    
+                button.bind("<Enter>", on_enter)
+                button.bind("<Leave>", on_leave)
             
         
         # Add a proceed button
@@ -396,15 +433,15 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         
         # Add labels and buttons for each gesture
         if customKeyboardGesturesList:
-            for idx, customHGObject in enumerate(customKeyboardGesturesList):
-                label = ttk.Label(self, text=f"{customHGObject.name}: Not assigned", foreground="red")
+            for idx, customHGName in enumerate(customKeyboardGesturesList):
+                label = ttk.Label(self, text=f"{customHGName}: Not assigned", foreground="red")
                 label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
                 
-                button = ttk.Button(self, text="Click to record", command=lambda g=customHGObject.name, l=label: self.enable_recording(g, l))
+                button = ttk.Button(self, text="Click to record", command=lambda g=customHGName, l=label: self.enable_recording(g, l))
                 button.grid(row=idx + 1, column=1, padx=10, pady=10)
                 
                 # delete_button = buildButton(self, "Delete", deleteCustomGesture, customHGObject.name, self)
-                delete_button = ttk.Button(self, text="Delete", command=lambda g=customHGObject.name: deleteCustomGesture(g, self))
+                delete_button = ttk.Button(self, text="Delete", command=lambda g=customHGName: deleteCustomGesture(g, self))
                 delete_button.grid(row=idx+1, column=2, padx=10, pady=10)
                 
                 def hoverButtonEffect(customHGName):
@@ -418,10 +455,10 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
                     
                     return on_enter, on_leave
                  
-                record_on_enter, record_on_leave = hoverButtonEffect(customHGObject.name)    
+                record_on_enter, record_on_leave = hoverButtonEffect(customHGName)    
                 button.bind("<Enter>", record_on_enter)
                 button.bind("<Leave>", record_on_leave)
-                delete_on_enter, delete_on_leave = hoverButtonEffect(customHGObject.name)    
+                delete_on_enter, delete_on_leave = hoverButtonEffect(customHGName)    
                 delete_button.bind("<Enter>", delete_on_enter)
                 delete_button.bind("<Leave>", delete_on_leave)
         
@@ -479,32 +516,6 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         
         keypointCount = getNextSeqOfKeypointCount()
         print(f"Total count in keypoints csv: {keypointCount}")
-        
-        # Add labels and buttons for each gesture
-        # if customKeyboardGesturesList:
-        #     for idx, gesture in enumerate(customKeyboardGesturesList):
-        #         label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
-        #         label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
-                
-        #         button = ttk.Button(self, text="Click to record", command=lambda g=gesture, l=label: self.enable_recording(g, l))
-        #         button.grid(row=idx + 1, column=1, padx=10, pady=10)
-                
-        #         delete_button = buildButtonWithColor(self, "Delete", delete_button, gesture, "red")
-        #         delete_button.grid(row=idx+1, column=1, padx=10, pady=10)
-                
-        #         # Add hover effect to buttons
-        #         def on_enter(event, b=button):
-        #             b.config(style='Hover.TButton')
-                
-        #         def on_leave(event, b=button):
-        #             b.config(style='TButton')
-                    
-        #         button.bind("<Enter>", on_enter)
-        #         button.bind("<Leave>", on_leave)
-        #         delete_button.bind("<Enter>", on_enter)
-        #         delete_button.bind("<Leave>", on_leave)
-        
-        # enteredHGName = newHG_entry.get()
                 
         add_gesture_button = buildButton(self, "Click to record", initiateWebCam, None)
         add_gesture_button.grid(row=2, column=0, columnspan=2, pady=20)
@@ -556,12 +567,12 @@ class TestingHGUI(ttk.Frame):
         return TESTING_HG_UI
 
         
-def buildButton(frame, text, actionFunc, *pageName):
+def buildButton(frame, text, actionFunc, pageName):
     
     button = Button(
         frame,
         text=text,
-        command= lambda: actionFunc(*pageName) if pageName is not None else actionFunc(),
+        command= lambda: actionFunc(pageName) if pageName is not None else actionFunc(),
         activebackground="blue",
         activeforeground="white",
         anchor="center",
@@ -891,253 +902,10 @@ def main():
         # Here you can add any additional actions for when the proceed button is pressed
         root.quit()
 
-    # Create the main window
-    # root = tk.Tk()
-    # root.title("Main Menu")
-    # root.geometry("500x500")
-    # root.configure(bg="#f0f0f0")
     root = Root()
-
-    # Use a nicer theme
-    # style = ttk.Style()
-    # style.theme_use('clam')
-    # style.configure('TButton', font=('Arial', 12), padding=5)
-    # style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
-    # style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
-    
-
-    # Create a frame to hold all mappings
-    # frame = ttk.Frame(root, padding=20, style='Frame.TFrame')
-    # frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-
-    # Header Label
-    # header_label = ttk.Label(frame, text="Map Gestures to Key Presses", style='Header.TLabel')
-    # header_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
-
-    # # Add labels and buttons for each gesture
-    # for idx, gesture in enumerate(gestures):
-    #     label = ttk.Label(frame, text=f"{gesture}: Not assigned", foreground="red")
-    #     label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
-        
-    #     button = ttk.Button(frame, text="Click to record", 
-    #                         command=lambda g=gesture, l=label: enable_recording(g, l))
-    #     button.grid(row=idx + 1, column=1, padx=10, pady=10)
-        
-    #     # Add hover effect to buttons
-    #     def on_enter(event, b=button):
-    #         b.config(style='Hover.TButton')
-        
-    #     def on_leave(event, b=button):
-    #         b.config(style='TButton')
-
-    #     button.bind("<Enter>", on_enter)
-    #     button.bind("<Leave>", on_leave)
-
-    # style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
-
-    # # Add a proceed button
-    # proceed_button = ttk.Button(frame, text="Proceed", command=proceed, style='TButton')
-    # proceed_button.grid(row=len(gestures) + 2, column=0, columnspan=2, pady=20)
 
     # Run the application
     root.mainloop()
-
-
-    # args = get_args()
-
-    # cap_device = args.device
-    # cap_width = args.width
-    # cap_height = args.height
-
-    # use_static_image_mode = args.use_static_image_mode
-    # min_detection_confidence = args.min_detection_confidence
-    # min_tracking_confidence = args.min_tracking_confidence
-
-    # use_brect = True
-
-    # cap = cv.VideoCapture(cap_device)
-    # cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
-    # cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
-
-    # mp_hands = mp.solutions.hands
-    # hands = mp_hands.Hands(
-    #     static_image_mode=use_static_image_mode,
-    #     max_num_hands=2,
-    #     min_detection_confidence=min_detection_confidence,
-    #     min_tracking_confidence=min_tracking_confidence,
-    # )
-    
-    # # KeypointClassifier mainly run through all the data from keypoint_classifier.tflite to predict what is the class of the input data, output will be choosing the class with highest probability.
-    # keypoint_classifier = KeyPointClassifier()
-
-    # point_history_classifier = PointHistoryClassifier()
-
-    # with open('model/keypoint_classifier/keypoint_classifier_label.csv',
-    #           encoding='utf-8-sig') as f:
-    #     keypoint_classifier_labels = csv.reader(f)
-    #     keypoint_classifier_labels = [
-    #         row[0] for row in keypoint_classifier_labels
-    #     ]
-    # with open(
-    #         'model/point_history_classifier/point_history_classifier_label.csv',
-    #         encoding='utf-8-sig') as f:
-    #     point_history_classifier_labels = csv.reader(f)
-    #     point_history_classifier_labels = [
-    #         row[0] for row in point_history_classifier_labels
-    #     ]
-
-    # cvFpsCalc = CvFpsCalc(buffer_len=10)
-
-    # history_length = 16
-    # # point_history store most recent 16 points
-    # point_history = deque(maxlen=history_length)
-    # #  finger_gesture_history store most recent 16 gestures 
-    # finger_gesture_history = deque(maxlen=history_length)
-
-    # mode = 0
-    
-    # thumbDownCount = 0
-    # thumbUpCount = 0
-    # closeCount = 0
-    # okayCount = 0
-
-    # while True:
-    #     fps = cvFpsCalc.get()
-        
-    #     key = cv.waitKey(10)
-    #     if key == 27:  # ESC
-            
-    #         print("Total Thumbs Down Count : "+str(thumbDownCount))
-    #         thumbDownAlgo.printHighestDistanceGroupingStatistic()
-    #         print("Total Thumbs Up Count : "+str(thumbUpCount))
-    #         thumbUpAlgo.printHighestDistanceGroupingStatistic()
-    #         print("Total Close Count : "+str(closeCount))
-    #         closeAlgo.printHighestDistanceGroupingStatistic()
-    #         print("Total OK Count : "+str(okayCount))
-    #         okayAlgo.printHighestDistanceGroupingStatistic()
-            
-    #         break
-    #     number, mode = select_mode(key, mode)
-
-    #     # means if the camera capture something, then ret is True. Else ret is False.
-    #     ret, image = cap.read()
-    #     if not ret:
-    #         break
-    #     image = cv.flip(image, 1)
-    #     debug_image = copy.deepcopy(image)
-
-    #     image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-
-    #     image.flags.writeable = False
-    #     results = hands.process(image)
-    #     image.flags.writeable = True
-
-    #     # multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
-    #     if results.multi_hand_landmarks is not None:
-    #         for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
-    #                                               results.multi_handedness):
-    #             brect = calc_bounding_rect(debug_image, hand_landmarks)
-    #             # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
-    #             landmark_list = calc_landmark_list(debug_image, hand_landmarks)
-
-    #             # pre_process_landmark() will normalise a list of landmarks
-    #             pre_processed_landmark_list = pre_process_landmark(
-    #                 landmark_list)
-    #             # pre_process_point_history will normalise a list of point history
-    #             pre_processed_point_history_list = pre_process_point_history(
-    #                 debug_image, point_history)
-    #             logging_csv(number, mode, pre_processed_landmark_list,
-    #                         pre_processed_point_history_list)
-
-    #             # keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
-    #             hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
-    #             if hand_sign_id == 2:
-    #                 point_history.append(landmark_list[8])
-    #             else:
-    #                 point_history.append([0, 0])
-
-    #             finger_gesture_id = 0
-    #             point_history_len = len(pre_processed_point_history_list)
-    #             if point_history_len == (history_length * 2):
-    #                 finger_gesture_id = point_history_classifier(
-    #                     pre_processed_point_history_list)
-
-    #             finger_gesture_history.append(finger_gesture_id)
-    #             most_common_fg_id = Counter(
-    #                 finger_gesture_history).most_common()
-                
-    #             if is_middle_finger_up(hand_landmarks.landmark):
-    #                 gesture_text = "Middle Finger"
-    #                 print("Fuck youuuu")
-    #                 # printDistanceBetweenLandmarks(hand_landmarks.landmark)
-    #             elif is_close(hand_landmarks.landmark):
-    #                 gesture_text = "Close"
-    #                 closeCount += 1
-    #                 print("Close")
-    #                 closeAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
-    #             elif is_thumb_up(hand_landmarks.landmark):
-    #                 gesture_text = "Thumb Up"
-    #                 print("Thumb up")
-    #                 thumbUpCount += 1
-    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
-    #                 thumbUpAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-                    
-    #             elif is_thumb_down(hand_landmarks.landmark):
-    #                 gesture_text = "Thumb Down"
-    #                 thumbDownCount += 1
-    #                 print("Thumb down")
-    #                 thumbDownAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
-    #             elif is_peace_sign(hand_landmarks.landmark):
-    #                 gesture_text = "Peace Sign"
-    #                 print("RIP")
-    #                 # printDistanceBetweenLandmarks(hand_landmarks.landmark)
-    #             elif is_ok_sign(hand_landmarks.landmark):
-    #                 gesture_text = "OK Sign"
-    #                 okayCount += 1
-    #                 print("Ogay")
-    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
-    #                 okayAlgo.getLandMarkWidthAndHeightDistanceOfOneGestureAllFingers(hand_landmarks.landmark)
-    #             elif is_fist(hand_landmarks.landmark):
-    #                 gesture_text = "Fist"
-    #                 print("Bagelo")
-    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
-    #             else:
-    #                 gesture_text = keypoint_classifier_labels[hand_sign_id]
-    #                 print("Unknown: "+gesture_text)
-    #                 printDistanceBetweenLandmarks(hand_landmarks.landmark)
-
-    #             debug_image = draw_bounding_rect(use_brect, debug_image, brect)
-    #             debug_image = draw_landmarks(debug_image, landmark_list)
-    #             debug_image = draw_info_text(
-    #                 debug_image,
-    #                 brect,
-    #                 handedness,
-    #                 gesture_text,
-    #                 point_history_classifier_labels[most_common_fg_id[0][0]],
-    #             )
-                
-    #             # print("gesture_text : "+gesture_text)
-
-    #             if (is_middle_finger_up(hand_landmarks.landmark) or
-    #                 is_thumb_up(hand_landmarks.landmark) or
-    #                 is_thumb_down(hand_landmarks.landmark) or
-    #                 is_peace_sign(hand_landmarks.landmark) or
-    #                 is_ok_sign(hand_landmarks.landmark) or
-    #                 is_fist(hand_landmarks.landmark)):
-    #                 asyncio.run(press_key_throttled(gesture_to_key[gesture_text]))
-    #     else:
-    #         point_history.append([0, 0])
-
-    #     debug_image = draw_point_history(debug_image, point_history)
-    #     debug_image = draw_info(debug_image, fps, mode, number)
-
-    #     cv.imshow('HGR To Play Games', debug_image)
-
-    # cap.release()
-    # cv.destroyAllWindows()
 
 
 def select_mode(key, mode):
