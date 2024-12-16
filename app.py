@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import ttk
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import load_model
+import tensorflow as tf
 
 import time
 import asyncio
@@ -44,8 +45,10 @@ NEW_CUSTOM_HG_UI = "newCustomHandGestureForKeyboard"
 
 MODEL_SAVE_PATH = "model/keypoint_classifier/keypoint_classifier.keras"
 DATASET_PATH = "model/keypoint_classifier/keypoint.csv"
+TFLITE_SAVE_PATH = 'model/keypoint_classifier/keypoint_classifier.tflite'
 RANDOM_SEED = 42
 PREDEFINEDHG_COUNT = 0
+NUM_CLASSES = 30
 
 frameList={}
 predefinedKeyboardGesturesList = []
@@ -94,7 +97,7 @@ def populatePredefinedAndCustomKeyboardGesturesList():
         print(f"populatePredefinedKeyboardGesturesList() result: {len(predefinedKeyboardGesturesList)}")
         customKeyboardGesturesList = [
             row[0] for row in keypoint_classifier_labels[8:]
-        ]
+        ] 
         print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
         
 # def populateCustomKeyboardgesturesList():
@@ -106,13 +109,51 @@ def produceTrainAndTestDataset():
     y_dataset = np.loadtxt(DATASET_PATH, delimiter=',', dtype='int32', usecols=(0))
     X_train, X_test, y_train, y_test = train_test_split(X_dataset, y_dataset, train_size=0.75, random_state=RANDOM_SEED)
     return X_train, X_test, y_train, y_test
+
+def buildModel(model):
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Input((21 * 2, )),
+        tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dense(20, activation='relu'),
+        tf.keras.layers.Dropout(0.4),
+        tf.keras.layers.Dense(10, activation='relu'),
+        tf.keras.layers.Dense(NUM_CLASSES, activation='softmax')
+    ])
+    return model
+
+def compileModel(model):
+    model.compile(
+        optimizer='adam',
+        loss='sparse_categorical_crossentropy',
+        metrics=['accuracy']
+    )
+    return model
+
+def createCheckpointCallback():
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(
+    MODEL_SAVE_PATH, verbose=1, save_weights_only=False)
+    # Callback for early stopping
+    es_callback = tf.keras.callbacks.EarlyStopping(patience=20, verbose=1)
+    return cp_callback, es_callback
         
 def trainModelWithCustomHandGesture():
     print(f"trainModelWithCustomHandGesture()")
     model = load_model(MODEL_SAVE_PATH)
     model.save(MODEL_SAVE_PATH)
+    model = buildModel(model)
+    model = compileModel(model)
     X_train, X_test, y_train, y_test = produceTrainAndTestDataset()
-    model.fit(X_train, y_train, epochs=1000, batch_size=128, validation_data=(X_test, y_test))
+    cp_callback, es_callback = createCheckpointCallback()
+    model.fit(X_train, y_train, epochs=1000, batch_size=128, validation_data=(X_test, y_test), callbacks=[cp_callback, es_callback])
+    # val_loss, val_acc = model.evaluate(X_test, y_test, batch_size=128)
+    model = tf.keras.models.load_model(MODEL_SAVE_PATH)
+    # predict_result = model.predict(np.array([X_test[0]]))
+    model.save(MODEL_SAVE_PATH, include_optimizer=False)    
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    tflite_quantized_model = converter.convert()
+
+    open(TFLITE_SAVE_PATH, 'wb').write(tflite_quantized_model)
 
 def addHandGestureToCSV(newHG):
     with open('model/keypoint_classifier/keypoint_classifier_label.csv', mode='a', newline='', encoding='utf-8-sig') as f:
@@ -124,18 +165,18 @@ def addNewCustomGesture(newHG_name):
     enteredHGName = newHG_name.get()
     print(f"addNewCustomGesture(), argument: {enteredHGName}")
     if enteredHGName != "":
-        customHG = CustomHandGestureObject(enteredHGName)
-        customKeyboardGesturesList.append(customHG)
+        # customHG = CustomHandGestureObject(enteredHGName)
+        customKeyboardGesturesList.append(enteredHGName)
         print(f"customKeyboardGesturesList count: {len(customKeyboardGesturesList)}")
         newHG_name.delete(0, tk.END)
         addHandGestureToCSV(enteredHGName)
-        # trainModelWithCustomHandGesture()
+        trainModelWithCustomHandGesture()
     navigateTo(CUSTOM_HG_KEYBOARD_UI) 
 
 def deleteCustomGesture(customHGName, frame):
     print(f"deleteCustomGesture(), argument: {customHGName}")
     global customKeyboardGesturesList
-    customKeyboardGesturesList = [obj for obj in customKeyboardGesturesList if obj.name != customHGName]
+    customKeyboardGesturesList = [name for name in customKeyboardGesturesList if name != customHGName]
     print(f"deleteCustomGesture() updated customKeyboardGesturesList: {len(customKeyboardGesturesList)}")
     deleteHandGestureFromCSV(customHGName)
     frame.populatePageElements()
@@ -323,13 +364,13 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         self.root.bind("<Key>", lambda event: self.record_key(event, gesture, label))
 
     # Define a function that will be called when the user clicks "Proceed"
-    def proceed(self):
-        print("Gesture to key mapping:")
-        # for gesture, hex_code in self.gesture_to_key.items():
-        for gesture,hex_code in key_mapping.items():
-            print(f"{gesture}: {hex_code}")
-        # Here you can add any additional actions for when the proceed button is pressed
-        self.root.quit()
+    # def proceed(self):
+    #     print("Gesture to key mapping:")
+    #     # for gesture, hex_code in self.gesture_to_key.items():
+    #     for gesture,hex_code in key_mapping.items():
+    #         print(f"{gesture}: {hex_code}")
+    #     # Here you can add any additional actions for when the proceed button is pressed
+    #     self.root.quit()
         
     def getIdentity():
         return PREDEFINED_HG_KEYBOARD_UI
@@ -392,12 +433,12 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
         self.root.bind("<Key>", lambda event: self.record_key(event, gesture, label))
 
     # Define a function that will be called when the user clicks "Proceed"
-    def proceed(self):
-        print("Gesture to key mapping:")
-        for gesture, hex_code in self.gesture_to_key.items():
-            print(f"{gesture}: {hex_code}")
-        # Here you can add any additional actions for when the proceed button is pressed
-        self.root.quit()
+    # def proceed(self):
+    #     print("Gesture to key mapping:")
+    #     for gesture, hex_code in self.gesture_to_key.items():
+    #         print(f"{gesture}: {hex_code}")
+    #     # Here you can add any additional actions for when the proceed button is pressed
+    #     self.root.quit()
         
     def getIdentity():
         return PREDEFINED_HG_MOUSE_UI
@@ -408,8 +449,8 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame, padding=20)
         self.root = root
-        self.gesture_to_key = {}
-        self.custom_key_mapping = {}
+        # self.gesture_to_key = {}
+        # self.custom_key_mapping = {}
         
         title = Label(self, text=CUSTOM_HG_KEYBOARD_UI+"->"+keyboardTitle, font=titleSize)
         title.grid()
@@ -473,7 +514,7 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
     def record_key(self, event, gesture, label):
         # Store the hexadecimal code of the key using ord()
         vk_code = win32api.VkKeyScan(event.char)
-        self.gesture_to_key[gesture] = vk_code
+        key_mapping[gesture] = vk_code
         label.config(text=f"{gesture}: {vk_code}", foreground="green")
         self.root.unbind("<Key>")
 
@@ -483,12 +524,12 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         self.root.bind("<Key>", lambda event: self.record_key(event, gesture, label))
 
     # Define a function that will be called when the user clicks "Proceed"
-    def proceed(self):
-        print("Gesture to key mapping:")
-        for gesture, hex_code in self.gesture_to_key.items():
-            print(f"{gesture}: {hex_code}")
-        # Here you can add any additional actions for when the proceed button is pressed
-        self.root.quit()
+    # def proceed(self):
+    #     print("Gesture to key mapping:")
+    #     for gesture, hex_code in self.gesture_to_key.items():
+    #         print(f"{gesture}: {hex_code}")
+    #     # Here you can add any additional actions for when the proceed button is pressed
+    #     self.root.quit()
         
     def getIdentity():
         return CUSTOM_HG_KEYBOARD_UI
@@ -522,26 +563,6 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         
         done_button = buildButton(self, "Done", addNewCustomGesture, newHG_entry)
         done_button.grid(row=4, column=0, columnspan=2, pady=20)
-        
-    def record_key(self, event, gesture, label):
-        # Store the hexadecimal code of the key using ord()
-        vk_code = win32api.VkKeyScan(event.char)
-        self.gesture_to_key[gesture] = vk_code
-        label.config(text=f"{gesture}: {vk_code}", foreground="green")
-        self.root.unbind("<Key>")
-
-    # Define a function to enable key recording
-    def enable_recording(self, gesture, label):
-        label.config(text=f"{gesture}: Press any key...", foreground="orange")
-        self.root.bind("<Key>", lambda event: self.record_key(event, gesture, label))
-
-    # Define a function that will be called when the user clicks "Proceed"
-    def proceed(self):
-        print("Gesture to key mapping:")
-        for gesture, hex_code in self.gesture_to_key.items():
-            print(f"{gesture}: {hex_code}")
-        # Here you can add any additional actions for when the proceed button is pressed
-        self.root.quit()
         
     def getIdentity():
         return NEW_CUSTOM_HG_UI
@@ -690,7 +711,6 @@ async def press_key_throttled(key_name):
 
     # Get the hex key code for the provided key name
     hex_key_code = key_mapping[key_name]
-    print(f"hexKeyCode: {hex_key_code}")
 
     # Check if the time since the last key press is greater than the throttle time.
     if current_time - last_key_press_time >= THROTTLE_TIME:
@@ -895,12 +915,12 @@ def main():
         root.bind("<Key>", lambda event: record_key(event, gesture, label))
 
     # Define a function that will be called when the user clicks "Proceed"
-    def proceed():
-        print("Gesture to key mapping:")
-        for gesture, hex_code in gesture_to_key.items():
-            print(f"{gesture}: {hex_code}")
-        # Here you can add any additional actions for when the proceed button is pressed
-        root.quit()
+    # def proceed():
+    #     print("Gesture to key mapping:")
+    #     for gesture, hex_code in gesture_to_key.items():
+    #         print(f"{gesture}: {hex_code}")
+    #     # Here you can add any additional actions for when the proceed button is pressed
+    #     root.quit()
 
     root = Root()
 
@@ -918,6 +938,10 @@ def select_mode(key, mode):
         mode = 1
     if key == 104:  # h
         mode = 2
+    if key == 32:   # space bar
+        mode = 3
+        number = getNextSeqOfKeypointCount()
+        print(f"Spacebar pressed. Number of gesture in keypoint.csv: {number}")
     return number, mode
 
 
@@ -989,7 +1013,7 @@ def pre_process_point_history(image, point_history):
 
         temp_point_history[index][0] = (temp_point_history[index][0] -
                                         base_x) / image_width
-        temp_point_history[index][1] = (temp_point_history[index][1] -
+        temp_point_history[index][1] = (temp_point_history[index][1] - 
                                         base_y) / image_height
 
     temp_point_history = list(
@@ -1011,6 +1035,13 @@ def logging_csv(number, mode, landmark_list, point_history_list):
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *point_history_list])
+    if mode == 3:
+        csv_path = 'model/keypoint_classifier/keypoint.csv'
+        with open(csv_path, 'a', newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([getNextSeqOfKeypointCount(), *landmark_list])
+            print(f"Write into keypoint.csv for row {getNextSeqOfKeypointCount()+1}")
+        
 
 
 def draw_landmarks(image, landmark_point):
