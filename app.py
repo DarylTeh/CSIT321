@@ -463,7 +463,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
                 # row, col = divmod(idx, 3)
                 # component = PredefinedHandGesturesComponent(mainFrame, gesture, self.enable_recording, FALSE)
                 # component.grid(row=row+1, column=col, padx=10, pady=10, sticky="nsew")
-                label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
+                label = ttk.Label(self, text=f"{gesture}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
                 label.grid(row=idx + 2, column=0, padx=5, pady=10, sticky=tk.W)
                 
                 button = ttk.Button(self, text="Click to record", command=lambda g=gesture, l=label: self.enable_recording(g, l))
@@ -538,7 +538,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
         print(f"PredefinedHandGesturesMouseUI predefinedMouseGesturesList: {len(predefinedMouseGesturesList)}")
         # Add labels and buttons for each gesture
         for idx, gesture in enumerate(predefinedMouseGesturesList):
-            label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
+            label = ttk.Label(self, text=f"{gesture}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
             label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
             
             button = ttk.Button(self, text="Click to record", command=lambda g=gesture, l=label: self.enable_recording(g, l))
@@ -631,7 +631,7 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         # Add labels and buttons for each gesture
         if customKeyboardGesturesList:
             for idx, customHGName in enumerate(customKeyboardGesturesList):
-                label = ttk.Label(self, text=f"{customHGName}: Not assigned", font=("Venite Adoremus", 10, 'bold'))
+                label = ttk.Label(self, text=f"{customHGName}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
                 label.grid(row=idx + 2, column=0, padx=5, pady=10, sticky=tk.W)
                 
                 button = ttk.Button(self, text="Click to record", command=lambda g=customHGName, l=label: self.enable_recording(g, l))
