@@ -25,6 +25,7 @@ import tksvg
 import cv2 as cv
 import numpy as np
 import mediapipe as mp
+import pandas as pd
 
 from utils import CvFpsCalc
 from model import KeyPointClassifier
@@ -207,13 +208,21 @@ def deleteCustomGesture(customHGName, frame):
     global customKeyboardGesturesList
     customKeyboardGesturesList = [name for name in customKeyboardGesturesList if name != customHGName]
     print(f"deleteCustomGesture() updated customKeyboardGesturesList: {len(customKeyboardGesturesList)}")
-    deleteHandGestureFromCSV(customHGName)
+    customHGIndex = deleteHandGestureFromCSV(customHGName)
+    updateKeypointCSV(customHGIndex)
+    trainModelWithCustomHandGesture()
     frame.populatePageElements()
     
 def deleteHandGestureFromCSV(gesture):
+    print(f"deleteHandGestureFromCSV()")
     with open('model/keypoint_classifier/keypoint_classifier_label.csv', mode='r', encoding='utf-8-sig') as f:
         rows = list(csv.reader(f))
         
+    # print(f"rows: {rows}")
+    index = 0
+    for rowIndex, row in enumerate(rows):
+        if gesture in row:
+            index = rowIndex
     updated_rows = [row for row in rows if row and row[0] != gesture]
     
     with open('model/keypoint_classifier/keypoint_classifier_label.csv', mode='w', newline='', encoding='utf-8-sig') as f:
@@ -221,7 +230,14 @@ def deleteHandGestureFromCSV(gesture):
         writer.writerows(updated_rows)
     
     print(f"Deleted value from keypoint csv: {gesture}")
+    return index
 
+def updateKeypointCSV(index):
+    print(f"updateKeypointCSV()")
+    dataframe = pd.read_csv(DATASET_PATH, header=None, engine="python", on_bad_lines="skip")
+    updatedDataframe = dataframe[dataframe[0] != index].reset_index(drop=True)
+    updatedDataframe[0] = updatedDataframe[0].where(updatedDataframe[0] < index, updatedDataframe[0]-1)
+    updatedDataframe.to_csv(DATASET_PATH, index=False, header=False)
 
 # def initializeUI():
 
@@ -280,7 +296,7 @@ def loadProductName(root):
     root.productIcon = ImageTk.PhotoImage(icon)
     root.grid_columnconfigure(0, weight=1)
     productName = Label(root, text="GAMING WITH BARE HANDS", font=("Venite Adoremus", 30, 'bold'), fg="#FFF", bg="black", justify="center", image=root.productIcon, compound="left")
-    productName.grid(row=0, column=0, pady=10, sticky="nsew")
+    productName.grid(row=0, column=0, columnspan=10, pady=10, sticky="nsew")
 
 class MainMenuUI(ttk.Frame):
     
@@ -316,10 +332,10 @@ class MainMenuUI(ttk.Frame):
         customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", navigateTo, CUSTOM_HG_UI)
         frameButton(self, customHandGesturesBtn)
         
-        testingBtn = buildButton(self, "Test Hand Gestures", initiateWebCam, None)
+        testingBtn = buildButton(self, "Test Hand Gestures", initiateWebCam, False)
         frameButton(self, testingBtn)
         
-        startGameBtn = buildButton(self, "Start Game", initiateWebCam, None)
+        startGameBtn = buildButton(self, "Start Game", initiateWebCam, True)
         frameButton(self, startGameBtn)
 
         
@@ -379,6 +395,35 @@ class CustomHandGesturesUI(ttk.Frame):
     def getIdentity():
         return CUSTOM_HG_UI  
 
+class PredefinedHandGesturesComponent(ttk.Frame):
+    def __init__(self, mainFrame, gesture_name, action, has_value_var):
+        super().__init__(mainFrame)
+        
+        # Label for hand gesture (row 0, column 0, span entire row)
+        self.label = Label(self, text=gesture_name,  font=("Venite Adoremus", 15, 'bold'), fg="#FFF", bg="black")
+        self.label.grid(row=0, column=0, columnspan=2, pady=5, sticky="n")
+        
+        # Button to record (row 1, column 0)
+        self.record_button = Button(self, text="Click to Record", command=lambda g=gesture_name, l=self.label: action(g, l))
+        self.record_button.grid(row=1, column=0, pady=5, sticky="n")
+        
+        # Checkbox to show recorded value status (row 1, column 1)
+        self.checkbox = Checkbutton(self, variable=has_value_var, state="disabled")
+        self.checkbox.grid(row=1, column=1, padx=5, sticky="w")
+        
+        # Configure grid column weights within the component
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        
+        def on_enter(event, b=self.record_button):
+            b.config(style='Hover.TButton')
+                
+        def on_leave(event, b=self.record_button):
+            b.config(style='TButton')
+                    
+        self.record_button.bind("<Enter>", on_enter)
+        self.record_button.bind("<Leave>", on_leave)
+
 class PredefinedHandGesturesKeyboardUI(ttk.Frame):
     global predefinedKeyboardGesturesList
         
@@ -390,7 +435,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         loadWallpaper(self)
         loadProductName(self)
         
-        title = Label(self, text=predefinedHGTitle+"->"+keyboardTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
+        title = Label(self, text=predefinedHGTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
         title.grid(pady=10)
         
         style = ttk.Style()
@@ -408,14 +453,21 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
     def populatePageElements(self):
         print(f"PredefinedHandGesturesKeyboardUI populatePageElements()")
         print(f"PredefinedHandGesturesKeyboardUI predefinedKeyboardGesturesList: {len(predefinedKeyboardGesturesList)}")
+        
+        # for col in range(3):
+        #     mainFrame.grid_columnconfigure(col, weight=1, minsize=100)
+            
         # Add labels and buttons for each gesture
         for idx, gesture in enumerate(predefinedKeyboardGesturesList):
             if idx < len(predefinedKeyboardGesturesList)-1:
+                # row, col = divmod(idx, 3)
+                # component = PredefinedHandGesturesComponent(mainFrame, gesture, self.enable_recording, FALSE)
+                # component.grid(row=row+1, column=col, padx=10, pady=10, sticky="nsew")
                 label = ttk.Label(self, text=f"{gesture}: Not assigned", foreground="red")
-                label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
+                label.grid(row=idx + 2, column=0, padx=5, pady=10, sticky=tk.W)
                 
                 button = ttk.Button(self, text="Click to record", command=lambda g=gesture, l=label: self.enable_recording(g, l))
-                button.grid(row=idx + 1, column=1, padx=10, pady=10)
+                button.grid(row=idx + 2, column=1, padx=10, pady=10)
                 
                 # Add hover effect to buttons
                 def on_enter(event, b=button):
@@ -426,7 +478,9 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
                     
                 button.bind("<Enter>", on_enter)
                 button.bind("<Leave>", on_leave)
-            
+                
+        # for row in range((len(predefinedKeyboardGesturesList) + 2) // 3):  # Total rows
+        #     mainFrame.grid_rowconfigure(row, weight=1)
         
         # Add a proceed button
         # proceed_button = ttk.Button(self, text="Proceed", command=self.proceed, style='TButton')
@@ -465,7 +519,10 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
         self.root = root
         self.gesture_to_key = {}
         
-        title = Label(self, text=predefinedHGTitle+"->"+mouseTitle, font=titleSize)
+        loadWallpaper(self)
+        loadProductName(self)
+        
+        title = Label(self, text=predefinedHGTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
         title.grid()
         
         style = ttk.Style()
@@ -534,10 +591,11 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         self.root = root
         # self.gesture_to_key = {}
         # self.custom_key_mapping = {}
+        
         loadWallpaper(self)
         loadProductName(self)
         
-        title = Label(self, text=CUSTOM_HG_KEYBOARD_UI+"->"+keyboardTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
+        title = Label(self, text="CUSTOM HAND GESTURES", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
         title.grid(pady=10)
         
         style = ttk.Style()
@@ -556,19 +614,32 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         
         for widget in self.winfo_children():
             widget.destroy()
+            
+        loadWallpaper(self)
+        loadProductName(self)
+        
+        title = Label(self, text="CUSTOM HAND GESTURES", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
+        title.grid(pady=10)
+        
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure('TButton', font=('Arial', 12), padding=5)
+        style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
+        style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
+        style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
         
         # Add labels and buttons for each gesture
         if customKeyboardGesturesList:
             for idx, customHGName in enumerate(customKeyboardGesturesList):
                 label = ttk.Label(self, text=f"{customHGName}: Not assigned", font=("Venite Adoremus", 10, 'bold'))
-                label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
+                label.grid(row=idx + 2, column=0, padx=5, pady=10, sticky=tk.W)
                 
                 button = ttk.Button(self, text="Click to record", command=lambda g=customHGName, l=label: self.enable_recording(g, l))
-                button.grid(row=idx + 1, column=1, padx=10, pady=10)
+                button.grid(row=idx + 2, column=1, padx=10, pady=10)
                 
                 # delete_button = buildButton(self, "Delete", deleteCustomGesture, customHGObject.name, self)
                 delete_button = ttk.Button(self, text="Delete", command=lambda g=customHGName: deleteCustomGesture(g, self))
-                delete_button.grid(row=idx+1, column=2, padx=10, pady=10)
+                delete_button.grid(row=idx+2, column=2, padx=10, pady=10)
                 
                 def hoverButtonEffect(customHGName):
                     # Add hover effect to buttons
@@ -627,14 +698,16 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         self.gesture_to_key = {}
         self.custom_key_mapping = {}
         self.newHGName = ''
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(2, weight=1)
         
         loadWallpaper(self)
         loadProductName(self)
         
-        newHG_label = Label(self, text='Hand Gesture Name', font=('calibre', 10, 'bold'))
-        newHG_label.grid(row=0, column=0)
-        newHG_entry = Entry(self, textvariable=self.newHGName, font=('calibre',10,'normal'))
-        newHG_entry.grid(row=0, column=1)
+        newHG_label = Label(self, text='Hand Gesture Name', font=("Venite Adoremus", 15, 'bold'), fg="#FFF", bg="black", justify="center")
+        newHG_label.grid(row=1, column=0, padx=(0, 10), pady=5, sticky="e")
+        newHG_entry = Entry(self, textvariable=self.newHGName, font=("Venite Adoremus", 15, 'bold'), fg="#FFF", bg="black", justify="center")
+        newHG_entry.grid(row=1, column=1, pady=5, sticky="w")
         
         style = ttk.Style()
         style.theme_use('clam')
@@ -646,7 +719,7 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         keypointCount = getNextSeqOfKeypointCount()
         print(f"Total count in keypoints csv: {keypointCount}")
                 
-        add_gesture_button = buildButton(self, "Click to record", initiateWebCam, None)
+        add_gesture_button = buildButton(self, "Click to record", initiateWebCam, False)
         add_gesture_button.grid(row=2, column=0, columnspan=2, pady=20)
         
         done_button = buildDoneButton(self, "Done", addNewCustomGesture, newHG_entry)
@@ -856,7 +929,7 @@ async def press_key_throttled(key_name):
         
         print(f"key pressed.")
         
-def initiateWebCam():
+def initiateWebCam(isGameStart):
     
     args = get_args()
 
@@ -985,7 +1058,8 @@ def initiateWebCam():
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
 
-                asyncio.run(press_key_throttled(gesture_text))
+                if isGameStart:
+                    asyncio.run(press_key_throttled(gesture_text))
                 # asyncio.run(press_key_throttled("A"))
         else:
             point_history.append([0, 0])
