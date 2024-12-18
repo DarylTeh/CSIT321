@@ -7,13 +7,20 @@ from collections import deque
 import win32api
 import win32con
 import tkinter as tk
+from tkinter import font
 from tkinter import ttk
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import load_model
 import tensorflow as tf
+from PIL import ImageFont, ImageTk
+import PIL.Image
+# from svglib.svglib import svg2rlg
+# from reportlab.graphics import renderPM
 
 import time
 import asyncio
+import tksvg
+# import cairosvg
 
 import cv2 as cv
 import numpy as np
@@ -55,6 +62,28 @@ predefinedKeyboardGesturesList = []
 predefinedMouseGesturesList = []
 customKeyboardGesturesList = []
 customMouseGesturesList = []
+
+font_path = "VeniteAdoremus.otf"
+font_size = 15
+button_top_border = '''<svg xmlns="http://www.w3.org/2000/svg" width="603" height="22" viewBox="0 0 603 22" fill="none"><path d="M1 20.5L30 1H570.5L602 20.5" stroke="#37EBFF" stroke-width="2"/></svg>'''
+button_bottom_border = '''<svg xmlns="http://www.w3.org/2000/svg" width="603" height="22" viewBox="0 0 603 22" fill="none"><path d="M602 0.999969L573 20.5L32.5 20.5L0.999998 1.00002" stroke="#37EBFF" stroke-width="2"/></svg>'''
+
+def getGameFont():
+    pil_font = ImageFont.truetype(font_path, font_size)
+    game_font = font.Font(family=pil_font.getname()[0], size=font_size, weight="normal", slant="roman")
+    return game_font
+
+# def convert_svg_to_png(svg_file, png_file):
+#     drawing = svg2rlg(svg_file)
+#     renderPM.drawToFile(drawing, png_file, fmt="PNG")
+
+def getButtonTopBorder():
+    top_border_svg = tksvg.SvgImage(data=button_top_border)
+    return top_border_svg
+
+def getButtonBottomBorder():
+    bottom_border_svg = tksvg.SvgImage(data=button_bottom_border)
+    return bottom_border_svg
 
 def getNextSeqOfKeypointCount():
     with open('model/keypoint_classifier/keypoint_classifier_label.csv',
@@ -215,7 +244,7 @@ class Root(tk.Tk):
         mainFrame.grid_columnconfigure(0, weight=1)
         
         populatePredefinedAndCustomKeyboardGesturesList()
-        
+        # self.load_game_font()
         # self.frames = {}
         
         for page in (MainMenuUI, PredefinedHandGesturesUI, CustomHandGesturesUI, PredefinedHandGesturesKeyboardUI, PredefinedHandGesturesMouseUI, CustomHandGesturesKeyboardUI, NewCustomHandGestureForKeyboard):
@@ -232,29 +261,68 @@ class Root(tk.Tk):
             print("frames item: {0}".format(x))
         
         navigateTo(MAINMENU_UI)
+    
+    # def load_game_font(self):
+    #     if os.path.exists(font_path):
+    #         self.tk.call("font", "create", "venite_font", "-family", "Venite Adoremus", "-size", 20, "-weight", "normal")
+    #         self.tk.call("font", "configure", "venite_font", "-file", font_path)
+    #     else:
+    #         print("Font file for game font not found. Please provide correct file.")
+
+def loadWallpaper(root):
+    wallpaper = PIL.Image.open("GWBHWallpaper.jpg")
+    root.bg_image = ImageTk.PhotoImage(wallpaper.resize((root.winfo_screenwidth(), root.winfo_screenheight())))
+    bg_label = Label(root, image=root.bg_image)
+    bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+    
+def loadProductName(root):
+    icon = PIL.Image.open("productIcon.png")
+    root.productIcon = ImageTk.PhotoImage(icon)
+    root.grid_columnconfigure(0, weight=1)
+    productName = Label(root, text="GAMING WITH BARE HANDS", font=("Venite Adoremus", 30, 'bold'), fg="#FFF", bg="black", justify="center", image=root.productIcon, compound="left")
+    productName.grid(row=0, column=0, pady=10, sticky="nsew")
 
 class MainMenuUI(ttk.Frame):
     
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame)
         self.root = root
+        # root.wm_attributes('-transparentcolor','black')
         
-        title = Label(self, text=mainMenuTitle, font=titleSize)
-        title.pack()
+        # wallpaper = PIL.Image.open("GWBHWallpaper.jpg")
+        # self.bg_image = ImageTk.PhotoImage(wallpaper.resize((self.winfo_screenwidth(), self.winfo_screenheight())))
+        # bg_label = Label(self, image=self.bg_image)
+        # bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+        
+        # icon = PIL.Image.open("productIcon.png")
+        # self.productIcon = ImageTk.PhotoImage(icon)
+        # productName = Label(self, text="GAMING WITH BARE HANDS", font=("Venite Adoremus", 30, 'bold'), fg="#FFF", bg="black", justify="center", image=self.productIcon, compound="left")
+        # productName.pack(pady=10)
+        
+        loadWallpaper(self)
+        loadProductName(self)
+        
+        title = Label(self, text=mainMenuTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
+        title.grid(pady=10)
         
         # predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", lambda: controller.navigateTo(PREDEFINED_HG_UI))
-        predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", navigateTo, PREDEFINED_HG_UI)
-        predefinedHandGesturesBtn.pack(padx=20, pady=20)
-        
+        # predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", navigateTo, PREDEFINED_HG_UI)
+        # game_font = font.Font(family="Venite Adoremus", size=30, weight="normal", slant="roman", lineheight=1.2)
+        # predefinedHandGesturesBtn = tk.Button(self, text="Predefined Hand Gestures", font=game_font, bg="#37EBFF", fg="white", activebackground="#45a049", activeforeground="white", relief="raised", borderwidth=5, padx=20, pady=10, command=lambda: navigateTo(PREDEFINED_HG_UI))
+        predefinedHandGesturesBtn =buildButton(self, "Predefined Hand Gestures", navigateTo, PREDEFINED_HG_UI)
+        # predefinedHandGesturesBtn.pack(padx=20, pady=20)
+        frameButton(self, predefinedHandGesturesBtn)
+
         customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", navigateTo, CUSTOM_HG_UI)
-        customHandGesturesBtn.pack(padx=20, pady=20)
+        frameButton(self, customHandGesturesBtn)
         
         testingBtn = buildButton(self, "Test Hand Gestures", initiateWebCam, None)
-        testingBtn.pack(padx=20, pady=20)
+        frameButton(self, testingBtn)
         
         startGameBtn = buildButton(self, "Start Game", initiateWebCam, None)
-        startGameBtn.pack(padx=20, pady=20)
-                
+        frameButton(self, startGameBtn)
+
+        
     def getIdentity():
         return MAINMENU_UI
         
@@ -264,16 +332,22 @@ class PredefinedHandGesturesUI(ttk.Frame):
         super().__init__(mainFrame, padding=20)
         self.root = root
         
-        title = Label(self, text=predefinedHGTitle, font=titleSize)
-        title.pack()
+        loadWallpaper(self)
+        loadProductName(self)
+        
+        title = Label(self, text=predefinedHGTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
+        title.grid(pady=10)
         
         keyboardBtn = buildButton(self, "Keyboard", navigateTo, PREDEFINED_HG_KEYBOARD_UI)
+        frameButton(self, keyboardBtn)
         mouseBtn = buildButton(self, "Mouse", navigateTo, PREDEFINED_HG_MOUSE_UI)
-        doneBtn = buildButtonWithColor(self, "Done", navigateTo, MAINMENU_UI, "green")
+        frameButton(self, mouseBtn)
+        doneBtn = buildDoneButton(self, "Done", navigateTo, MAINMENU_UI)
+        frameButton(self, doneBtn)
         
-        keyboardBtn.pack(padx=20, pady=20)
-        mouseBtn.pack(padx=20, pady=20)
-        doneBtn.pack(padx=20, pady=20)
+        # keyboardBtn.pack(padx=20, pady=20)
+        # mouseBtn.pack(padx=20, pady=20)
+        # doneBtn.pack(padx=20, pady=20)
         
     def getIdentity():
         return PREDEFINED_HG_UI
@@ -285,16 +359,22 @@ class CustomHandGesturesUI(ttk.Frame):
         super().__init__(mainFrame, padding=20)
         self.root = root
         
-        title = Label(self, text=customHGTitle, font=titleSize)
-        title.pack()
+        loadWallpaper(self)
+        loadProductName(self)
+        
+        title = Label(self, text=customHGTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
+        title.grid(pady=10)
         
         keyboardBtn = buildButton(self, "Keyboard", navigateTo, CUSTOM_HG_KEYBOARD_UI)
+        frameButton(self, keyboardBtn)
         mouseBtn = buildButton(self, "Mouse", navigateTo, "TOCHANGE")
-        doneBtn = buildButtonWithColor(self, "Done", navigateTo, MAINMENU_UI, "green")
+        frameButton(self, mouseBtn)
+        doneBtn = buildDoneButton(self, "Done", navigateTo, MAINMENU_UI)
+        frameButton(self, doneBtn)
         
-        keyboardBtn.pack(padx=20, pady=20)
-        mouseBtn.pack(padx=20, pady=20)
-        doneBtn.pack(padx=20, pady=20)
+        # keyboardBtn.pack(padx=20, pady=20)
+        # mouseBtn.pack(padx=20, pady=20)
+        # doneBtn.pack(padx=20, pady=20)
         
     def getIdentity():
         return CUSTOM_HG_UI  
@@ -307,8 +387,11 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         self.root = root
         self.gesture_to_key = {}
         
-        title = Label(self, text=predefinedHGTitle+"->"+keyboardTitle, font=titleSize)
-        title.grid()
+        loadWallpaper(self)
+        loadProductName(self)
+        
+        title = Label(self, text=predefinedHGTitle+"->"+keyboardTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
+        title.grid(pady=10)
         
         style = ttk.Style()
         style.theme_use('clam')
@@ -347,7 +430,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         
         # Add a proceed button
         # proceed_button = ttk.Button(self, text="Proceed", command=self.proceed, style='TButton')
-        proceed_button = buildButton(self, "Done", navigateTo, PREDEFINED_HG_UI)
+        proceed_button = buildDoneButton(self, "Done", navigateTo, PREDEFINED_HG_UI)
         proceed_button.grid(row=len(predefinedKeyboardGesturesList) + 2, column=0, columnspan=2, pady=20)
         
     def record_key(self, event, gesture, label):
@@ -417,7 +500,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
         
         # Add a proceed button
         # proceed_button = ttk.Button(self, text="Proceed", command=self.proceed, style='TButton')
-        proceed_button = buildButton(self, "Done", navigateTo, PREDEFINED_HG_UI)
+        proceed_button = buildDoneButton(self, "Done", navigateTo, PREDEFINED_HG_UI)
         proceed_button.grid(row=len(predefinedMouseGesturesList) + 2, column=0, columnspan=2, pady=20)
         
     def record_key(self, event, gesture, label):
@@ -451,9 +534,11 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         self.root = root
         # self.gesture_to_key = {}
         # self.custom_key_mapping = {}
+        loadWallpaper(self)
+        loadProductName(self)
         
-        title = Label(self, text=CUSTOM_HG_KEYBOARD_UI+"->"+keyboardTitle, font=titleSize)
-        title.grid()
+        title = Label(self, text=CUSTOM_HG_KEYBOARD_UI+"->"+keyboardTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
+        title.grid(pady=10)
         
         style = ttk.Style()
         style.theme_use('clam')
@@ -475,7 +560,7 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         # Add labels and buttons for each gesture
         if customKeyboardGesturesList:
             for idx, customHGName in enumerate(customKeyboardGesturesList):
-                label = ttk.Label(self, text=f"{customHGName}: Not assigned", foreground="red")
+                label = ttk.Label(self, text=f"{customHGName}: Not assigned", font=("Venite Adoremus", 10, 'bold'))
                 label.grid(row=idx + 1, column=0, padx=5, pady=10, sticky=tk.W)
                 
                 button = ttk.Button(self, text="Click to record", command=lambda g=customHGName, l=label: self.enable_recording(g, l))
@@ -508,7 +593,7 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         
         # Add a proceed button
         # proceed_button = ttk.Button(self, text="Proceed", command=self.proceed, style='TButton')
-        proceed_button = buildButton(self, "Done", navigateTo, CUSTOM_HG_UI)
+        proceed_button = buildDoneButton(self, "Done", navigateTo, CUSTOM_HG_UI)
         proceed_button.grid(row=len(customKeyboardGesturesList) +10, column=0, columnspan=2, pady=20)
         
     def record_key(self, event, gesture, label):
@@ -543,6 +628,9 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         self.custom_key_mapping = {}
         self.newHGName = ''
         
+        loadWallpaper(self)
+        loadProductName(self)
+        
         newHG_label = Label(self, text='Hand Gesture Name', font=('calibre', 10, 'bold'))
         newHG_label.grid(row=0, column=0)
         newHG_entry = Entry(self, textvariable=self.newHGName, font=('calibre',10,'normal'))
@@ -561,7 +649,7 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         add_gesture_button = buildButton(self, "Click to record", initiateWebCam, None)
         add_gesture_button.grid(row=2, column=0, columnspan=2, pady=20)
         
-        done_button = buildButton(self, "Done", addNewCustomGesture, newHG_entry)
+        done_button = buildDoneButton(self, "Done", addNewCustomGesture, newHG_entry)
         done_button.grid(row=4, column=0, columnspan=2, pady=20)
         
     def getIdentity():
@@ -574,7 +662,7 @@ class TestingHGUI(ttk.Frame):
         self.root = root
         
         title = Label(self, text=customHGTitle, font=titleSize)
-        title.pack()
+        title.grid()
         
         # keyboardBtn = buildButton(self, "Keyboard", )
         # mouseBtn = buildButton(self, "Mouse", )
@@ -587,9 +675,25 @@ class TestingHGUI(ttk.Frame):
     def getIdentity():
         return TESTING_HG_UI
 
+def frameButton(root, button):
+    # cairosvg.svg2png(bytestring=button_top_border, write_to="top_border.png")
+    # cairosvg.svg2png(bytestring=button_bottom_border, write_to="bottom_border.png")
+    top_border = tksvg.SvgImage(data=button_top_border)
+    top_border_label = Label(root, image=top_border, borderwidth=0)
+    # top_border_image = Image.open("top_border.png")
+    # bottom_border_image = Image.open("bottom_border.png")
+    # top_tk_image = ImageTk.PhotoImage(top_border_image)
+    # bottom_tk_image = ImageTk.PhotoImage(bottom_border_image)
+    # top_border_label = Label(root, image=top_tk_image, borderwidth=0)
+    # bottom_border_label = Label(root, image=bottom_tk_image, borderwidth=0)
+    bottom_border = tksvg.SvgImage(data=button_bottom_border)
+    bottom_border_label = Label(root, image=bottom_border, borderwidth=0)
+    # top_border_label.pack()
+    button.grid(padx=20, pady=20)
+    # bottom_border_label.pack()
+
         
 def buildButton(frame, text, actionFunc, pageName):
-    
     button = Button(
         frame,
         text=text,
@@ -598,11 +702,11 @@ def buildButton(frame, text, actionFunc, pageName):
         activeforeground="white",
         anchor="center",
         bd=3,
-        bg="lightgray",
+        bg="black",
         cursor="hand2",
-        foreground="black",
-        fg="black",
-        font=("Arial", 12),
+        foreground="#37EBFF",
+        fg="#37EBFF",
+        font=getGameFont(),
         height=2,
         highlightbackground="black",
         highlightcolor="green",
@@ -611,8 +715,36 @@ def buildButton(frame, text, actionFunc, pageName):
         overrelief="raised",
         padx=10,
         pady=5,
-        width=15,
-        wraplength=100
+        width=25,
+        wraplength=0
+    )
+    
+    return button
+
+def buildDoneButton(frame, text, actionFunc, pageName):
+    button = Button(
+        frame,
+        text=text,
+        command= lambda: actionFunc(pageName) if pageName is not None else actionFunc(),
+        activebackground="blue",
+        activeforeground="white",
+        anchor="center",
+        bd=3,
+        bg="black",
+        cursor="hand2",
+        foreground="#37EBFF",
+        fg="#37EBFF",
+        font=getGameFont(),
+        height=2,
+        highlightbackground="black",
+        highlightcolor="green",
+        highlightthickness=2,
+        justify="center",
+        overrelief="raised",
+        padx=10,
+        pady=5,
+        width=10,
+        wraplength=0
     )
     
     return button
