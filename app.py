@@ -918,16 +918,16 @@ async def press_key_throttled(key_name):
     hex_key_code = key_mapping[key_name]
 
     # Check if the time since the last key press is greater than the throttle time.
-    if current_time - last_key_press_time >= THROTTLE_TIME:
+    # if current_time - last_key_press_time >= THROTTLE_TIME:
         # Press the key down
-        win32api.keybd_event(hex_key_code, 0, 0, 0)
-        time.sleep(0.2)  # Short delay to ensure the key press is registered
+    win32api.keybd_event(hex_key_code, 0, 0, 0)
+    time.sleep(0.05)  # Short delay to ensure the key press is registered
         
         # Simulate releasing the key
-        win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
-        last_key_press_time = current_time
+    # win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
+    last_key_press_time = current_time
         
-        print(f"key pressed.")
+    print(f"key pressed.")
         
 def initiateWebCam(isGameStart):
     
