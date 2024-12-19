@@ -63,6 +63,7 @@ predefinedKeyboardGesturesList = []
 predefinedMouseGesturesList = []
 customKeyboardGesturesList = []
 customMouseGesturesList = []
+isTurboChecked = False
 
 font_path = "VeniteAdoremus.otf"
 font_size = 15
@@ -299,21 +300,11 @@ def loadProductName(root):
     productName.grid(row=0, column=0, columnspan=10, pady=10, sticky="nsew")
 
 class MainMenuUI(ttk.Frame):
+    global isTurboChecked
     
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame)
         self.root = root
-        # root.wm_attributes('-transparentcolor','black')
-        
-        # wallpaper = PIL.Image.open("GWBHWallpaper.jpg")
-        # self.bg_image = ImageTk.PhotoImage(wallpaper.resize((self.winfo_screenwidth(), self.winfo_screenheight())))
-        # bg_label = Label(self, image=self.bg_image)
-        # bg_label.place(x=0, y=0, relwidth=1, relheight=1)
-        
-        # icon = PIL.Image.open("productIcon.png")
-        # self.productIcon = ImageTk.PhotoImage(icon)
-        # productName = Label(self, text="GAMING WITH BARE HANDS", font=("Venite Adoremus", 30, 'bold'), fg="#FFF", bg="black", justify="center", image=self.productIcon, compound="left")
-        # productName.pack(pady=10)
         
         loadWallpaper(self)
         loadProductName(self)
@@ -321,12 +312,7 @@ class MainMenuUI(ttk.Frame):
         title = Label(self, text=mainMenuTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
         title.grid(pady=10)
         
-        # predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", lambda: controller.navigateTo(PREDEFINED_HG_UI))
-        # predefinedHandGesturesBtn = buildButton(self, "Predefined Hand Gestures", navigateTo, PREDEFINED_HG_UI)
-        # game_font = font.Font(family="Venite Adoremus", size=30, weight="normal", slant="roman", lineheight=1.2)
-        # predefinedHandGesturesBtn = tk.Button(self, text="Predefined Hand Gestures", font=game_font, bg="#37EBFF", fg="white", activebackground="#45a049", activeforeground="white", relief="raised", borderwidth=5, padx=20, pady=10, command=lambda: navigateTo(PREDEFINED_HG_UI))
         predefinedHandGesturesBtn =buildButton(self, "Predefined Hand Gestures", navigateTo, PREDEFINED_HG_UI)
-        # predefinedHandGesturesBtn.pack(padx=20, pady=20)
         frameButton(self, predefinedHandGesturesBtn)
 
         customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", navigateTo, CUSTOM_HG_UI)
@@ -337,7 +323,21 @@ class MainMenuUI(ttk.Frame):
         
         startGameBtn = buildButton(self, "Start Game", initiateWebCam, True)
         frameButton(self, startGameBtn)
+        
+        label = Label(self, text="Turbo:", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")  # Align the text to the left
+        label.grid(padx=20, pady=20)
 
+        self.turboChecked = tk.BooleanVar()
+        self.turboChecked.trace_add("write", self.onTurboChecked)
+        checkbox = ttk.Checkbutton(self, variable=self.turboChecked)
+        # isTurboChecked = self.checkbox_var.get()
+        print(f"checkbox_var: {self.turboChecked.get()}")
+        checkbox.grid(padx=20, pady=20)
+    
+    def onTurboChecked(self, *args):
+        global isTurboChecked
+        isTurboChecked = self.turboChecked.get()
+        print(f"isTurboChecked: {isTurboChecked}")
         
     def getIdentity():
         return MAINMENU_UI
@@ -904,6 +904,30 @@ key_mapping = {
     "B": 0x42         # B key
 }
 
+async def press_key_turbo(key_name):
+    global last_key_press_time
+    current_time = time.time()
+
+    # Ensure the key_name is valid
+    if key_name not in key_mapping:
+        print(f"Invalid key name: {key_name}")
+        return
+
+    # Get the hex key code for the provided key name
+    hex_key_code = key_mapping[key_name]
+
+    # Check if the time since the last key press is greater than the throttle time.
+    # if current_time - last_key_press_time >= THROTTLE_TIME:
+        # Press the key down
+    win32api.keybd_event(hex_key_code, 0, 0, 0)
+    # time.sleep(0.05)  # Short delay to ensure the key press is registered
+        
+        # Simulate releasing the key
+    # win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
+    last_key_press_time = current_time
+        
+    print(f"key pressed.")
+
 
 async def press_key_throttled(key_name):
     global last_key_press_time
@@ -921,10 +945,10 @@ async def press_key_throttled(key_name):
     # if current_time - last_key_press_time >= THROTTLE_TIME:
         # Press the key down
     win32api.keybd_event(hex_key_code, 0, 0, 0)
-    time.sleep(0.05)  # Short delay to ensure the key press is registered
+    time.sleep(0.2)  # Short delay to ensure the key press is registered
         
         # Simulate releasing the key
-    # win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
+    win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
     last_key_press_time = current_time
         
     print(f"key pressed.")
@@ -1059,7 +1083,12 @@ def initiateWebCam(isGameStart):
                 )
 
                 if isGameStart:
-                    asyncio.run(press_key_throttled(gesture_text))
+                    if isTurboChecked:
+                        asyncio.run(press_key_turbo(gesture_text))
+                        print(f"Turbo is on, press_key_turbo is running")
+                    else:
+                        asyncio.run(press_key_throttled(gesture_text))
+                        print(f"Turbo is off, press_key_throttled is running")
                 # asyncio.run(press_key_throttled("A"))
         else:
             point_history.append([0, 0])
