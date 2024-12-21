@@ -4,3 +4,5 @@ matplotlib
 protobuf
 mediapipe
 tensorflow
+tksvg
+interfaces
