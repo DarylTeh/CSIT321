@@ -564,7 +564,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
         # Store the hexadecimal code of the key using ord()
         vk_code = win32api.VkKeyScan(event.char)
         key_name = event.keysym
-        self.gesture_to_key[gesture] = vk_code
+        mouse_mapping[gesture] = vk_code
         label.config(text=f"{gesture}: {key_name}", foreground="green")
         self.root.unbind("<Key>")
 
