@@ -903,6 +903,12 @@ key_mapping = {
     "A": 0x41,        # A key
     "B": 0x42         # B key
 }
+mouse_mapping = {
+    "LeftClick": 0x01,   # Left mouse button
+    "RightClick": 0x02,  # Right mouse button
+    "MiddleClick": 0x04  # Middle mouse button
+}
+
 
 async def press_key_turbo(key_name):
     global last_key_press_time
