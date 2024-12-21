@@ -490,9 +490,9 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
     def record_key(self, event, gesture, label):
         # Store the hexadecimal code of the key using ord()
         vk_code = win32api.VkKeyScan(event.char)
-        # self.gesture_to_key[gesture] = vk_code
+        key_name = event.keysym
         key_mapping[gesture] = vk_code
-        label.config(text=f"{gesture}: {vk_code}", foreground="green")
+        label.config(text=f"{gesture}: {key_name}", foreground="green")
         self.root.unbind("<Key>")
 
     # Define a function to enable key recording
@@ -563,8 +563,9 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
     def record_key(self, event, gesture, label):
         # Store the hexadecimal code of the key using ord()
         vk_code = win32api.VkKeyScan(event.char)
+        key_name = event.keysym
         self.gesture_to_key[gesture] = vk_code
-        label.config(text=f"{gesture}: {vk_code}", foreground="green")
+        label.config(text=f"{gesture}: {key_name}", foreground="green")
         self.root.unbind("<Key>")
 
     # Define a function to enable key recording
@@ -670,8 +671,9 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
     def record_key(self, event, gesture, label):
         # Store the hexadecimal code of the key using ord()
         vk_code = win32api.VkKeyScan(event.char)
+        key_name = event.keysym
         key_mapping[gesture] = vk_code
-        label.config(text=f"{gesture}: {vk_code}", foreground="green")
+        label.config(text=f"{gesture}: {key_name}", foreground="green")
         self.root.unbind("<Key>")
 
     # Define a function to enable key recording
