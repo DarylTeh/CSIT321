@@ -6,3 +6,4 @@ mediapipe
 tensorflow
 tksvg
 interfaces
+threading

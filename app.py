@@ -4,6 +4,7 @@ import argparse
 import itertools
 from collections import Counter
 from collections import deque
+import threading
 import win32api
 import win32con
 import tkinter as tk
@@ -186,6 +187,42 @@ def trainModelWithCustomHandGesture():
 
     open(TFLITE_SAVE_PATH, 'wb').write(tflite_quantized_model)
 
+def show_loading_popup(root):
+    # Create a new top-level window to display the loading spinner and label
+    loading_window = tk.Toplevel(root)
+    loading_window.title("Loading")
+    loading_window.geometry("200x100")  # Set the size of the popup window
+    loading_window.configure(bg="white")
+
+    # Make the window stay on top of the main window
+    loading_window.attributes("-topmost", True)
+    loading_window.grab_set()  # Make the window modal (blocks interaction with other windows)
+
+    # Disable the close button of the popup window
+    loading_window.protocol("WM_DELETE_WINDOW", lambda: None)
+
+    # Center the loading window on the parent window (root)
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    position_top = int(screen_height / 2 - 50)  # Adjust the position to center
+    position_left = int(screen_width / 2 - 100)
+    loading_window.geometry(f"200x100+{position_left}+{position_top}")
+
+    # Create a label above the spinner
+    label = ttk.Label(loading_window, text="Deleting...", font=("Arial", 14), foreground="red", background="white")
+    label.pack(pady=10)
+
+    # Create the spinner (progress bar)
+    spinner = ttk.Progressbar(loading_window, mode="indeterminate")
+    spinner.pack(pady=10)
+    spinner.start()
+
+    return loading_window, spinner
+
+def hide_loading_popup(loading_window):
+    # Close the loading window
+    loading_window.destroy()
+
 def addHandGestureToCSV(newHG):
     with open('model/keypoint_classifier/keypoint_classifier_label.csv', mode='a', newline='', encoding='utf-8-sig') as f:
         writer = csv.writer(f)
@@ -205,14 +242,25 @@ def addNewCustomGesture(newHG_name):
     navigateTo(CUSTOM_HG_KEYBOARD_UI) 
 
 def deleteCustomGesture(customHGName, frame):
-    print(f"deleteCustomGesture(), argument: {customHGName}")
-    global customKeyboardGesturesList
-    customKeyboardGesturesList = [name for name in customKeyboardGesturesList if name != customHGName]
-    print(f"deleteCustomGesture() updated customKeyboardGesturesList: {len(customKeyboardGesturesList)}")
-    customHGIndex = deleteHandGestureFromCSV(customHGName)
-    updateKeypointCSV(customHGIndex)
-    trainModelWithCustomHandGesture()
-    frame.populatePageElements()
+    def task():
+        try:
+            print(f"deleteCustomGesture(), argument: {customHGName}")
+            global customKeyboardGesturesList
+            customKeyboardGesturesList = [name for name in customKeyboardGesturesList if name != customHGName]
+            print(f"deleteCustomGesture() updated customKeyboardGesturesList: {len(customKeyboardGesturesList)}")
+            customHGIndex = deleteHandGestureFromCSV(customHGName)
+            updateKeypointCSV(customHGIndex)
+            trainModelWithCustomHandGesture()
+            frame.populatePageElements()
+        finally:
+            # Hide the spinner when the task is done
+            frame.after(0, hide_loading_popup, loading_window)
+
+    # Show the loading spinner
+    loading_window, spinner = show_loading_popup(frame)
+
+    # Run the task in a separate thread
+    threading.Thread(target=task, daemon=True).start()
     
 def deleteHandGestureFromCSV(gesture):
     print(f"deleteHandGestureFromCSV()")
