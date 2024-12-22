@@ -932,16 +932,7 @@ def buildButtonWithColor(frame, text, actionFunc, pageName, color):
 
     #  ===================================================================================================================== User Interfaces ===========================================================================================================
 
-# key_mapping = {
-#     "Up": 0xC8,       # Arrow Up
-#     "Down": 0xD0,     # Arrow Down
-#     "Left": 0xCB,     # Arrow Left
-#     "Right": 0xCD,    # Arrow Right
-#     "Start": 0x13,    # Start (example, modify as needed)
-#     "Select": 0x1F,   # Select (example, modify as needed)
-#     "A": 0x1C,        # A key
-#     "B": 0x1D         # B key
-# }
+# Default mapping if user doesnt record keybinds, DO NOT CHANGE
 
 key_mapping = {
     "Up": 0x26,       # VK_UP (Arrow Up)
