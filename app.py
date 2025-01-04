@@ -502,6 +502,22 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         print(f"PredefinedHandGesturesKeyboardUI populatePageElements()")
         print(f"PredefinedHandGesturesKeyboardUI predefinedKeyboardGesturesList: {len(predefinedKeyboardGesturesList)}")
         
+        for widget in self.winfo_children():
+            widget.destroy()
+            
+        loadWallpaper(self)
+        loadProductName(self)
+        
+        title = Label(self, text=predefinedHGTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
+        title.grid(pady=10)
+        
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure('TButton', font=('Arial', 12), padding=5)
+        style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
+        style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
+        style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
+        
         # for col in range(3):
         #     mainFrame.grid_columnconfigure(col, weight=1, minsize=100)
             
