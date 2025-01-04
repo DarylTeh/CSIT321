@@ -27,6 +27,7 @@ import cv2 as cv
 import numpy as np
 import mediapipe as mp
 import pandas as pd
+import pyautogui as pg
 
 from utils import CvFpsCalc
 from model import KeyPointClassifier
@@ -1017,6 +1018,8 @@ def initiateWebCam(isGameStart):
     cap = cv.VideoCapture(cap_device)
     cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
     cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
+
+    screen_width, screen_height = pg.size()
     
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands(
@@ -1089,6 +1092,17 @@ def initiateWebCam(isGameStart):
                 brect = calc_bounding_rect(debug_image, hand_landmarks)
                 # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
                 landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+
+                #fingertip cursor
+                index_finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+
+                # map coordinates to screen dimensions
+                cursor_x = int(index_finger_tip.x * screen_width)
+                cursor_y = int(index_finger_tip.y * screen_height)
+
+                #to call just use hand_cursor_control(cursor_x, cursor_y)
+
+                #fingertip cursor
 
                 # pre_process_landmark() will normalise a list of landmarks
                 pre_processed_landmark_list = pre_process_landmark(
@@ -1209,6 +1223,8 @@ def main():
     # Run the application
     root.mainloop()
 
+def hand_cursor_control(cursor_x, cursor_y):
+    pg.moveTo(cursor_x, cursor_y)
 
 def select_mode(key, mode):
     number = -1
