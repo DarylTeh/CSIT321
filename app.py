@@ -58,6 +58,7 @@ TFLITE_SAVE_PATH = 'model/keypoint_classifier/keypoint_classifier.tflite'
 RANDOM_SEED = 42
 PREDEFINEDHG_COUNT = 0
 NUM_CLASSES = 30
+MAX_COLUMN = 3
 
 frameList={}
 predefinedKeyboardGesturesList = []
@@ -472,6 +473,27 @@ class PredefinedHandGesturesComponent(ttk.Frame):
         self.record_button.bind("<Enter>", on_enter)
         self.record_button.bind("<Leave>", on_leave)
 
+class handGestureComponent(ttk.Frame):
+    def __init__(self, parent, label_text, button_command=None, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        self.label_text = label_text
+        self.button_command = button_command
+        
+        self.label = ttk.Label(self, text=f"{self.label_text}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
+        self.label.grid(pady=(10,5))
+        
+        self.button = ttk.Button(self, text="Click to record", command=lambda g=self.label_text, l=self.label: self.button_command(g, l))
+        self.button.grid(pady=(10,5))
+        
+        def on_enter(event, b=self.button):
+            b.config(style='Hover.TButton')
+                
+        def on_leave(event, b=self.button):
+            b.config(style='TButton')
+                    
+        self.button.bind("<Enter>", on_enter)
+        self.button.bind("<Leave>", on_leave)        
+
 class PredefinedHandGesturesKeyboardUI(ttk.Frame):
     global predefinedKeyboardGesturesList
         
@@ -509,7 +531,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         loadProductName(self)
         
         title = Label(self, text=predefinedHGTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
-        title.grid(pady=10)
+        title.grid(pady=10, columnspan=MAX_COLUMN)
         
         style = ttk.Style()
         style.theme_use('clam')
@@ -518,30 +540,22 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
         style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
         
-        # for col in range(3):
-        #     mainFrame.grid_columnconfigure(col, weight=1, minsize=100)
+        for col in range(MAX_COLUMN):
+            self.grid_columnconfigure(col, weight=1, uniform="col")
+            
+        total_rows = (len(predefinedKeyboardGesturesList) + MAX_COLUMN - 1) // MAX_COLUMN
+        for row in range(total_rows + 2):
+            self.grid_rowconfigure(row, weight=1, uniform="row")
             
         # Add labels and buttons for each gesture
         for idx, gesture in enumerate(predefinedKeyboardGesturesList):
             if idx < len(predefinedKeyboardGesturesList)-1:
-                # row, col = divmod(idx, 3)
-                # component = PredefinedHandGesturesComponent(mainFrame, gesture, self.enable_recording, FALSE)
-                # component.grid(row=row+1, column=col, padx=10, pady=10, sticky="nsew")
-                label = ttk.Label(self, text=f"{gesture}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
-                label.grid(row=idx + 2, column=0, padx=5, pady=10, sticky=tk.W)
+
+                componentRow = idx // MAX_COLUMN
+                componentColumn = idx % MAX_COLUMN
                 
-                button = ttk.Button(self, text="Click to record", command=lambda g=gesture, l=label: self.enable_recording(g, l))
-                button.grid(row=idx + 2, column=1, padx=10, pady=10)
-                
-                # Add hover effect to buttons
-                def on_enter(event, b=button):
-                    b.config(style='Hover.TButton')
-                
-                def on_leave(event, b=button):
-                    b.config(style='TButton')
-                    
-                button.bind("<Enter>", on_enter)
-                button.bind("<Leave>", on_leave)
+                hgComponent = handGestureComponent(self, label_text=gesture, button_command=self.enable_recording)
+                hgComponent.grid(row=componentRow+2, column=componentColumn, padx=5, pady=10)
                 
         # for row in range((len(predefinedKeyboardGesturesList) + 2) // 3):  # Total rows
         #     mainFrame.grid_rowconfigure(row, weight=1)
@@ -549,7 +563,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         # Add a proceed button
         # proceed_button = ttk.Button(self, text="Proceed", command=self.proceed, style='TButton')
         proceed_button = buildDoneButton(self, "Done", navigateTo, PREDEFINED_HG_UI)
-        proceed_button.grid(row=len(predefinedKeyboardGesturesList) + 2, column=0, columnspan=2, pady=20)
+        proceed_button.grid(row=len(predefinedKeyboardGesturesList) + 2, column=0, columnspan=MAX_COLUMN, pady=20)
         
     def record_key(self, event, gesture, label):
         # Store the hexadecimal code of the key using ord()
