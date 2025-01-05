@@ -1085,7 +1085,7 @@ def initiateWebCam(isGameStart):
             break
         number, mode = select_mode(key, mode)
 
-        # means if the camera capture something, then ret is True. Else ret is False.
+        # means if the camera capture something, then rest is True. Else rest is False.
         ret, image = cap.read()
         if not ret:
             break
