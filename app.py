@@ -473,16 +473,21 @@ class PredefinedHandGesturesComponent(ttk.Frame):
         self.record_button.bind("<Enter>", on_enter)
         self.record_button.bind("<Leave>", on_leave)
 
-class handGestureComponent(ttk.Frame):
+class HandGestureComponent(ttk.Frame):
     def __init__(self, parent, label_text, button_command=None, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.label_text = label_text
         self.button_command = button_command
         
-        self.label = ttk.Label(self, text=f"{self.label_text}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
+        self.config(width=200, height=100)
+        
+        container = ttk.Frame(self)
+        container.place(relx=0.5, rely=0.5, anchor="center")
+                
+        self.label = ttk.Label(container, text=f"{self.label_text}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
         self.label.grid(pady=(10,5))
         
-        self.button = ttk.Button(self, text="Click to record", command=lambda g=self.label_text, l=self.label: self.button_command(g, l))
+        self.button = ttk.Button(container, text="Click to record", command=lambda g=self.label_text, l=self.label: self.button_command(g, l))
         self.button.grid(pady=(10,5))
         
         def on_enter(event, b=self.button):
@@ -554,8 +559,8 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
                 componentRow = idx // MAX_COLUMN
                 componentColumn = idx % MAX_COLUMN
                 
-                hgComponent = handGestureComponent(self, label_text=gesture, button_command=self.enable_recording)
-                hgComponent.grid(row=componentRow+2, column=componentColumn, padx=5, pady=10)
+                hgComponent = HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording)
+                hgComponent.grid(row=componentRow+2, column=componentColumn, ipadx=50, ipady=50)
                 
         # for row in range((len(predefinedKeyboardGesturesList) + 2) // 3):  # Total rows
         #     mainFrame.grid_rowconfigure(row, weight=1)
