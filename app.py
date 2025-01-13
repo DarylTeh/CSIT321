@@ -16,6 +16,7 @@ import tensorflow as tf
 from PIL import ImageFont, ImageTk
 import PIL.Image
 import PredefinedHandGestureComponent
+import CustomHandGestureComponent
 # from svglib.svglib import svg2rlg
 # from reportlab.graphics import renderPM
 
@@ -480,7 +481,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame, padding=20)
         self.root = root
-        self.gesture_to_key = {}
+        # self.gesture_to_key = {}
         
         loadWallpaper(self)
         loadProductName(self)
@@ -708,7 +709,7 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         loadProductName(self)
         
         title = Label(self, text="CUSTOM HAND GESTURES", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
-        title.grid(pady=10)
+        title.grid(pady=10, columnspan=MAX_COLUMN)
         
         style = ttk.Style()
         style.theme_use('clam')
@@ -717,44 +718,30 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
         style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
         
+        for col in range(MAX_COLUMN):
+            self.grid_columnconfigure(col, weight=1, uniform="col")
+            
+        total_rows = (len(predefinedKeyboardGesturesList) + MAX_COLUMN - 1) // MAX_COLUMN
+        for row in range(total_rows + 2):
+            self.grid_rowconfigure(row, weight=1, uniform="row")
+        
         # Add labels and buttons for each gesture
         if customKeyboardGesturesList:
             for idx, customHGName in enumerate(customKeyboardGesturesList):
-                label = ttk.Label(self, text=f"{customHGName}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
-                label.grid(row=idx + 2, column=0, padx=5, pady=10, sticky=tk.W)
                 
-                button = ttk.Button(self, text="Click to record", command=lambda g=customHGName, l=label: self.enable_recording(g, l))
-                button.grid(row=idx + 2, column=1, padx=10, pady=10)
+                componentRow = idx // MAX_COLUMN
+                componentColumn = idx % MAX_COLUMN
                 
-                # delete_button = buildButton(self, "Delete", deleteCustomGesture, customHGObject.name, self)
-                delete_button = ttk.Button(self, text="Delete", command=lambda g=customHGName: deleteCustomGesture(g, self))
-                delete_button.grid(row=idx+2, column=2, padx=10, pady=10)
-                
-                def hoverButtonEffect(customHGName):
-                    # Add hover effect to buttons
-                    def on_enter(event, b=button):
-                        b.config(style='Hover.TButton')
-                        print(f"Hover over button for customHG {customHGName}")
-                    
-                    def on_leave(event, b=button):
-                        b.config(style='TButton')
-                    
-                    return on_enter, on_leave
-                 
-                record_on_enter, record_on_leave = hoverButtonEffect(customHGName)    
-                button.bind("<Enter>", record_on_enter)
-                button.bind("<Leave>", record_on_leave)
-                delete_on_enter, delete_on_leave = hoverButtonEffect(customHGName)    
-                delete_button.bind("<Enter>", delete_on_enter)
-                delete_button.bind("<Leave>", delete_on_leave)
+                hgComponent = CustomHandGestureComponent.HandGestureComponent(self, label_text=customHGName, button_command=self.enable_recording, delete_button_command=deleteCustomGesture)
+                hgComponent.grid(row=componentRow+2, column=componentColumn, ipadx=50, ipady=50)
         
         add_gesture_button = buildButton(self, "Add New Hand Gesture", navigateTo, NEW_CUSTOM_HG_UI)
-        add_gesture_button.grid(row=len(customKeyboardGesturesList)+3, column=0, columnspan=2, pady=20)
+        add_gesture_button.grid(row=len(customKeyboardGesturesList)+2, column=0, columnspan=MAX_COLUMN, pady=20)
         
         # Add a proceed button
         # proceed_button = ttk.Button(self, text="Proceed", command=self.proceed, style='TButton')
         proceed_button = buildDoneButton(self, "Done", navigateTo, CUSTOM_HG_UI)
-        proceed_button.grid(row=len(customKeyboardGesturesList) +10, column=0, columnspan=2, pady=20)
+        proceed_button.grid(row=len(customKeyboardGesturesList) +3, column=0, columnspan=MAX_COLUMN, pady=20)
         
     def record_key(self, event, gesture, label):
         # Store the hexadecimal code of the key using ord()
@@ -768,14 +755,6 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
     def enable_recording(self, gesture, label):
         label.config(text=f"{gesture}: Press any key...", foreground="orange")
         self.root.bind("<Key>", lambda event: self.record_key(event, gesture, label))
-
-    # Define a function that will be called when the user clicks "Proceed"
-    # def proceed(self):
-    #     print("Gesture to key mapping:")
-    #     for gesture, hex_code in self.gesture_to_key.items():
-    #         print(f"{gesture}: {hex_code}")
-    #     # Here you can add any additional actions for when the proceed button is pressed
-    #     self.root.quit()
         
     def getIdentity():
         return CUSTOM_HG_KEYBOARD_UI
