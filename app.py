@@ -55,7 +55,7 @@ CUSTOM_HG_MOUSE_UI = "customHandGesturesMouseUI"
 NEW_CUSTOM_HG_UI = "newCustomHandGestureForKeyboard"
 DELETING_LABEL = "Deleting ..."
 TRAINING_LABEL = "Training ..."
-STARTING_GAME_LABEL = "Initializing webcam ..."
+INITIATE_WEBCAM_LABEL = "Initializing webcam ..."
 
 MODEL_SAVE_PATH = "model/keypoint_classifier/keypoint_classifier.keras"
 DATASET_PATH = "model/keypoint_classifier/keypoint.csv"
@@ -381,10 +381,56 @@ class MainMenuUI(ttk.Frame):
         customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", navigateTo, CUSTOM_HG_UI)
         frameButton(self, customHandGesturesBtn)
         
-        testingBtn = buildButton(self, "Test Hand Gestures", initiateWebCam, False)
+        testingBtn = Button(
+            self,
+            text="Test Hand Gestures",
+            command= lambda: initiateWebCam(self, False),
+            activebackground="blue",
+            activeforeground="white",
+            anchor="center",
+            bd=3,
+            bg="black",
+            cursor="hand2",
+            foreground="#37EBFF",
+            fg="#37EBFF",
+            font=getGameFont(),
+            height=2,
+            highlightbackground="black",
+            highlightcolor="green",
+            highlightthickness=2,
+            justify="center",
+            overrelief="raised",
+            padx=10,
+            pady=5,
+            width=25,
+            wraplength=0
+        )
         frameButton(self, testingBtn)
         
-        startGameBtn = buildButton(self, "Start Game", initiateWebCam, True)
+        startGameBtn = Button(
+            self,
+            text="Start Game",
+            command= lambda: initiateWebCam(self, True),
+            activebackground="blue",
+            activeforeground="white",
+            anchor="center",
+            bd=3,
+            bg="black",
+            cursor="hand2",
+            foreground="#37EBFF",
+            fg="#37EBFF",
+            font=getGameFont(),
+            height=2,
+            highlightbackground="black",
+            highlightcolor="green",
+            highlightthickness=2,
+            justify="center",
+            overrelief="raised",
+            padx=10,
+            pady=5,
+            width=25,
+            wraplength=0
+        )
         frameButton(self, startGameBtn)
         
         label = Label(self, text="Turbo:", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")  # Align the text to the left
@@ -800,7 +846,30 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         keypointCount = getNextSeqOfKeypointCount()
         print(f"Total count in keypoints csv: {keypointCount}")
                 
-        add_gesture_button = buildButton(self, "Click to record", initiateWebCam, False)
+        add_gesture_button = Button(
+            self,
+            text="Click to record",
+            command= lambda: initiateWebCam(self, False),
+            activebackground="blue",
+            activeforeground="white",
+            anchor="center",
+            bd=3,
+            bg="black",
+            cursor="hand2",
+            foreground="#37EBFF",
+            fg="#37EBFF",
+            font=getGameFont(),
+            height=2,
+            highlightbackground="black",
+            highlightcolor="green",
+            highlightthickness=2,
+            justify="center",
+            overrelief="raised",
+            padx=10,
+            pady=5,
+            width=25,
+            wraplength=0
+        )
         add_gesture_button.grid(row=2, column=0, columnspan=2, pady=20)
         
         # done_button = buildDoneButton(self, "Done", addNewCustomGesture, newHG_entry)
@@ -1055,153 +1124,160 @@ async def press_key_throttled(key_name):
         
     print(f"key pressed.")
         
-def initiateWebCam(isGameStart):
-    
-    args = get_args()
+def initiateWebCam(frame, isGameStart):
+    def asyncTask():
+        try:
+            args = get_args()
 
-    cap_device = args.device
-    cap_width = args.width
-    cap_height = args.height
+            cap_device = args.device
+            cap_width = args.width
+            cap_height = args.height
 
-    use_static_image_mode = args.use_static_image_mode
-    min_detection_confidence = args.min_detection_confidence
-    min_tracking_confidence = args.min_tracking_confidence
+            use_static_image_mode = args.use_static_image_mode
+            min_detection_confidence = args.min_detection_confidence
+            min_tracking_confidence = args.min_tracking_confidence
 
-    use_brect = True
+            use_brect = True
 
-    cap = cv.VideoCapture(cap_device)
-    cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
-    cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
-    
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(
-        static_image_mode=use_static_image_mode,
-        max_num_hands=2,
-        min_detection_confidence=min_detection_confidence,
-        min_tracking_confidence=min_tracking_confidence,
-    )
-    
-    # KeypointClassifier mainly run through all the data from keypoint_classifier.tflite to predict what is the class of the input data, output will be choosing the class with highest probability.
-    keypoint_classifier = KeyPointClassifier()
-
-    point_history_classifier = PointHistoryClassifier()
-
-    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
-              encoding='utf-8-sig') as f:
-        keypoint_classifier_labels = csv.reader(f)
-        keypoint_classifier_labels = [
-            row[0] for row in keypoint_classifier_labels
-        ]
-    with open(
-            'model/point_history_classifier/point_history_classifier_label.csv',
-            encoding='utf-8-sig') as f:
-        point_history_classifier_labels = csv.reader(f)
-        point_history_classifier_labels = [
-            row[0] for row in point_history_classifier_labels
-        ]
-
-    cvFpsCalc = CvFpsCalc(buffer_len=10)
-
-    history_length = 16
-    # point_history store most recent 16 points
-    point_history = deque(maxlen=history_length)
-    #  finger_gesture_history store most recent 16 gestures 
-    finger_gesture_history = deque(maxlen=history_length)
-
-    mode = 0
-    
-    thumbDownCount = 0
-    thumbUpCount = 0
-    closeCount = 0
-    okayCount = 0
-
-    while True:
-        fps = cvFpsCalc.get()
-        
-        key = cv.waitKey(10)
-        if key == 27:  # ESC
+            cap = cv.VideoCapture(cap_device)
+            cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
+            cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
             
-            break
-        number, mode = select_mode(key, mode)
+            mp_hands = mp.solutions.hands
+            hands = mp_hands.Hands(
+                static_image_mode=use_static_image_mode,
+                max_num_hands=2,
+                min_detection_confidence=min_detection_confidence,
+                min_tracking_confidence=min_tracking_confidence,
+            )
+            
+            # KeypointClassifier mainly run through all the data from keypoint_classifier.tflite to predict what is the class of the input data, output will be choosing the class with highest probability.
+            keypoint_classifier = KeyPointClassifier()
 
-        # means if the camera capture something, then rest is True. Else rest is False.
-        ret, image = cap.read()
-        if not ret:
-            break
-        image = cv.flip(image, 1)
-        debug_image = copy.deepcopy(image)
+            point_history_classifier = PointHistoryClassifier()
 
-        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+            with open('model/keypoint_classifier/keypoint_classifier_label.csv',
+                    encoding='utf-8-sig') as f:
+                keypoint_classifier_labels = csv.reader(f)
+                keypoint_classifier_labels = [
+                    row[0] for row in keypoint_classifier_labels
+                ]
+            with open(
+                    'model/point_history_classifier/point_history_classifier_label.csv',
+                    encoding='utf-8-sig') as f:
+                point_history_classifier_labels = csv.reader(f)
+                point_history_classifier_labels = [
+                    row[0] for row in point_history_classifier_labels
+                ]
 
-        image.flags.writeable = False
-        results = hands.process(image)
-        image.flags.writeable = True
+            cvFpsCalc = CvFpsCalc(buffer_len=10)
 
-        # multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
-        if results.multi_hand_landmarks is not None:
-            for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
-                                                  results.multi_handedness):
-                brect = calc_bounding_rect(debug_image, hand_landmarks)
-                # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
-                landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+            history_length = 16
+            # point_history store most recent 16 points
+            point_history = deque(maxlen=history_length)
+            #  finger_gesture_history store most recent 16 gestures 
+            finger_gesture_history = deque(maxlen=history_length)
 
-                # pre_process_landmark() will normalise a list of landmarks
-                pre_processed_landmark_list = pre_process_landmark(
-                    landmark_list)
-                # pre_process_point_history will normalise a list of point history
-                pre_processed_point_history_list = pre_process_point_history(
-                    debug_image, point_history)
-                logging_csv(number, mode, pre_processed_landmark_list,
-                            pre_processed_point_history_list)
+            mode = 0
+            
+            thumbDownCount = 0
+            thumbUpCount = 0
+            closeCount = 0
+            okayCount = 0
 
-                # keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
-                hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
-                if hand_sign_id == 2:
-                    point_history.append(landmark_list[8])
+            while True:
+                fps = cvFpsCalc.get()
+                
+                key = cv.waitKey(10)
+                if key == 27:  # ESC
+                    
+                    break
+                number, mode = select_mode(key, mode)
+
+                # means if the camera capture something, then rest is True. Else rest is False.
+                ret, image = cap.read()
+                if not ret:
+                    break
+                image = cv.flip(image, 1)
+                debug_image = copy.deepcopy(image)
+
+                image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+
+                image.flags.writeable = False
+                results = hands.process(image)
+                image.flags.writeable = True
+
+                # multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
+                if results.multi_hand_landmarks is not None:
+                    for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
+                                                        results.multi_handedness):
+                        brect = calc_bounding_rect(debug_image, hand_landmarks)
+                        # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
+                        landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+
+                        # pre_process_landmark() will normalise a list of landmarks
+                        pre_processed_landmark_list = pre_process_landmark(
+                            landmark_list)
+                        # pre_process_point_history will normalise a list of point history
+                        pre_processed_point_history_list = pre_process_point_history(
+                            debug_image, point_history)
+                        logging_csv(number, mode, pre_processed_landmark_list,
+                                    pre_processed_point_history_list)
+
+                        # keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
+                        hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+                        if hand_sign_id == 2:
+                            point_history.append(landmark_list[8])
+                        else:
+                            point_history.append([0, 0])
+
+                        finger_gesture_id = 0
+                        point_history_len = len(pre_processed_point_history_list)
+                        if point_history_len == (history_length * 2):
+                            finger_gesture_id = point_history_classifier(
+                                pre_processed_point_history_list)
+
+                        finger_gesture_history.append(finger_gesture_id)
+                        most_common_fg_id = Counter(
+                            finger_gesture_history).most_common()
+                        
+                        
+                        gesture_text = keypoint_classifier_labels[hand_sign_id]
+
+                        debug_image = draw_bounding_rect(use_brect, debug_image, brect)
+                        debug_image = draw_landmarks(debug_image, landmark_list)
+                        debug_image = draw_info_text(
+                            debug_image,
+                            brect,
+                            handedness,
+                            gesture_text,
+                            point_history_classifier_labels[most_common_fg_id[0][0]],
+                        )
+
+                        if isGameStart:
+                            if isTurboChecked:
+                                asyncio.run(press_key_turbo(gesture_text))
+                                print(f"Turbo is on, press_key_turbo is running")
+                            else:
+                                asyncio.run(press_key_throttled(gesture_text))
+                                print(f"Turbo is off, press_key_throttled is running")
+                        # asyncio.run(press_key_throttled("A"))
                 else:
                     point_history.append([0, 0])
 
-                finger_gesture_id = 0
-                point_history_len = len(pre_processed_point_history_list)
-                if point_history_len == (history_length * 2):
-                    finger_gesture_id = point_history_classifier(
-                        pre_processed_point_history_list)
+                debug_image = draw_point_history(debug_image, point_history)
+                debug_image = draw_info(debug_image, fps, mode, number)
 
-                finger_gesture_history.append(finger_gesture_id)
-                most_common_fg_id = Counter(
-                    finger_gesture_history).most_common()
-                
-                
-                gesture_text = keypoint_classifier_labels[hand_sign_id]
+                cv.imshow('HGR To Play Games', debug_image)
+                frame.after(0, hide_loading_popup, loading_window)
 
-                debug_image = draw_bounding_rect(use_brect, debug_image, brect)
-                debug_image = draw_landmarks(debug_image, landmark_list)
-                debug_image = draw_info_text(
-                    debug_image,
-                    brect,
-                    handedness,
-                    gesture_text,
-                    point_history_classifier_labels[most_common_fg_id[0][0]],
-                )
-
-                if isGameStart:
-                    if isTurboChecked:
-                        asyncio.run(press_key_turbo(gesture_text))
-                        print(f"Turbo is on, press_key_turbo is running")
-                    else:
-                        asyncio.run(press_key_throttled(gesture_text))
-                        print(f"Turbo is off, press_key_throttled is running")
-                # asyncio.run(press_key_throttled("A"))
-        else:
-            point_history.append([0, 0])
-
-        debug_image = draw_point_history(debug_image, point_history)
-        debug_image = draw_info(debug_image, fps, mode, number)
-
-        cv.imshow('HGR To Play Games', debug_image)
-
-    cap.release()
-    cv.destroyAllWindows()
+            cap.release()
+            cv.destroyAllWindows()
+        finally:
+            print("Initiate Web Cam and display loading dialog successfully.")
+            
+    loading_window, spinner = show_loading_popup(frame, INITIATE_WEBCAM_LABEL)
+    threading.Thread(target=asyncTask, daemon=True).start()
 
 
 def get_args():
