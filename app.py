@@ -53,6 +53,9 @@ PREDEFINED_HG_MOUSE_UI = "predefinedHandGesturesMouseUI"
 CUSTOM_HG_KEYBOARD_UI = "customHandGesturesKeyboardUI"
 CUSTOM_HG_MOUSE_UI = "customHandGesturesMouseUI"
 NEW_CUSTOM_HG_UI = "newCustomHandGestureForKeyboard"
+DELETING_LABEL = "Deleting ..."
+TRAINING_LABEL = "Training ..."
+STARTING_GAME_LABEL = "Initializing webcam ..."
 
 MODEL_SAVE_PATH = "model/keypoint_classifier/keypoint_classifier.keras"
 DATASET_PATH = "model/keypoint_classifier/keypoint.csv"
@@ -171,26 +174,35 @@ def createCheckpointCallback():
     es_callback = tf.keras.callbacks.EarlyStopping(patience=20, verbose=1)
     return cp_callback, es_callback
         
-def trainModelWithCustomHandGesture():
+def trainModelWithCustomHandGesture(frame, text):
     print(f"trainModelWithCustomHandGesture()")
-    model = load_model(MODEL_SAVE_PATH)
-    model.save(MODEL_SAVE_PATH)
-    model = buildModel(model)
-    model = compileModel(model)
-    X_train, X_test, y_train, y_test = produceTrainAndTestDataset()
-    cp_callback, es_callback = createCheckpointCallback()
-    model.fit(X_train, y_train, epochs=1000, batch_size=128, validation_data=(X_test, y_test), callbacks=[cp_callback, es_callback])
-    # val_loss, val_acc = model.evaluate(X_test, y_test, batch_size=128)
-    model = tf.keras.models.load_model(MODEL_SAVE_PATH)
-    # predict_result = model.predict(np.array([X_test[0]]))
-    model.save(MODEL_SAVE_PATH, include_optimizer=False)    
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    tflite_quantized_model = converter.convert()
+    
+    def asyncTask():
+        try:
+            model = load_model(MODEL_SAVE_PATH)
+            model.save(MODEL_SAVE_PATH)
+            model = buildModel(model)
+            model = compileModel(model)
+            X_train, X_test, y_train, y_test = produceTrainAndTestDataset()
+            cp_callback, es_callback = createCheckpointCallback()
+            model.fit(X_train, y_train, epochs=1000, batch_size=128, validation_data=(X_test, y_test), callbacks=[cp_callback, es_callback])
+            # val_loss, val_acc = model.evaluate(X_test, y_test, batch_size=128)
+            model = tf.keras.models.load_model(MODEL_SAVE_PATH)
+            # predict_result = model.predict(np.array([X_test[0]]))
+            model.save(MODEL_SAVE_PATH, include_optimizer=False)    
+            converter = tf.lite.TFLiteConverter.from_keras_model(model)
+            converter.optimizations = [tf.lite.Optimize.DEFAULT]
+            tflite_quantized_model = converter.convert()
 
-    open(TFLITE_SAVE_PATH, 'wb').write(tflite_quantized_model)
+            open(TFLITE_SAVE_PATH, 'wb').write(tflite_quantized_model)      
+        finally:
+            frame.after(0, hide_loading_popup, loading_window)
+    
+    loading_window, spinner = show_loading_popup(frame, text)
+    threading.Thread(target=asyncTask, daemon=True).start()
+            
 
-def show_loading_popup(root):
+def show_loading_popup(root, text):
     # Create a new top-level window to display the loading spinner and label
     loading_window = tk.Toplevel(root)
     loading_window.title("Loading")
@@ -212,7 +224,7 @@ def show_loading_popup(root):
     loading_window.geometry(f"200x100+{position_left}+{position_top}")
 
     # Create a label above the spinner
-    label = ttk.Label(loading_window, text="Deleting...", font=("Arial", 14), foreground="red", background="white")
+    label = ttk.Label(loading_window, text=text, font=("Arial", 14), foreground="red", background="white")
     label.pack(pady=10)
 
     # Create the spinner (progress bar)
@@ -232,7 +244,7 @@ def addHandGestureToCSV(newHG):
         writer.writerow([newHG])
         print(f"Added new value to keypoint CSV: {newHG}")
 
-def addNewCustomGesture(newHG_name):
+def addNewCustomGesture(frame, newHG_name):
     enteredHGName = newHG_name.get()
     print(f"addNewCustomGesture(), argument: {enteredHGName}")
     if enteredHGName != "":
@@ -241,7 +253,7 @@ def addNewCustomGesture(newHG_name):
         print(f"customKeyboardGesturesList count: {len(customKeyboardGesturesList)}")
         newHG_name.delete(0, tk.END)
         addHandGestureToCSV(enteredHGName)
-        trainModelWithCustomHandGesture()
+        trainModelWithCustomHandGesture(frame, TRAINING_LABEL)
     navigateTo(CUSTOM_HG_KEYBOARD_UI) 
 
 def deleteCustomGesture(customHGName, frame):
@@ -253,14 +265,14 @@ def deleteCustomGesture(customHGName, frame):
             print(f"deleteCustomGesture() updated customKeyboardGesturesList: {len(customKeyboardGesturesList)}")
             customHGIndex = deleteHandGestureFromCSV(customHGName)
             updateKeypointCSV(customHGIndex)
-            trainModelWithCustomHandGesture()
+            trainModelWithCustomHandGesture(frame, DELETING_LABEL)
             frame.populatePageElements()
         finally:
             # Hide the spinner when the task is done
             frame.after(0, hide_loading_popup, loading_window)
 
     # Show the loading spinner
-    loading_window, spinner = show_loading_popup(frame)
+    loading_window, spinner = show_loading_popup(frame, DELETING_LABEL)
 
     # Run the task in a separate thread
     threading.Thread(target=task, daemon=True).start()
@@ -791,7 +803,31 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         add_gesture_button = buildButton(self, "Click to record", initiateWebCam, False)
         add_gesture_button.grid(row=2, column=0, columnspan=2, pady=20)
         
-        done_button = buildDoneButton(self, "Done", addNewCustomGesture, newHG_entry)
+        # done_button = buildDoneButton(self, "Done", addNewCustomGesture, newHG_entry)
+        done_button = Button(
+            self,
+            text="Done",
+            command= lambda: addNewCustomGesture(self, newHG_entry),
+            activebackground="blue",
+            activeforeground="white",
+            anchor="center",
+            bd=3,
+            bg="black",
+            cursor="hand2",
+            foreground="#37EBFF",
+            fg="#37EBFF",
+            font=getGameFont(),
+            height=2,
+            highlightbackground="black",
+            highlightcolor="green",
+            highlightthickness=2,
+            justify="center",
+            overrelief="raised",
+            padx=10,
+            pady=5,
+            width=25,
+            wraplength=0
+        )
         done_button.grid(row=4, column=0, columnspan=2, pady=20)
         
     def getIdentity():
