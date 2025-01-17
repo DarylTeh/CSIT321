@@ -434,8 +434,8 @@ class CustomHandGesturesUI(ttk.Frame):
         
         keyboardBtn = buildButton(self, "Keyboard", navigateTo, CUSTOM_HG_KEYBOARD_UI)
         frameButton(self, keyboardBtn)
-        mouseBtn = buildButton(self, "Mouse", navigateTo, "TOCHANGE")
-        frameButton(self, mouseBtn)
+        # mouseBtn = buildButton(self, "Mouse", navigateTo, "TOCHANGE")
+        # frameButton(self, mouseBtn)
         doneBtn = buildDoneButton(self, "Done", navigateTo, MAINMENU_UI)
         frameButton(self, doneBtn)
         
