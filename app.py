@@ -73,13 +73,10 @@ button_top_border = '''<svg xmlns="http://www.w3.org/2000/svg" width="603" heigh
 button_bottom_border = '''<svg xmlns="http://www.w3.org/2000/svg" width="603" height="22" viewBox="0 0 603 22" fill="none"><path d="M602 0.999969L573 20.5L32.5 20.5L0.999998 1.00002" stroke="#37EBFF" stroke-width="2"/></svg>'''
 
 def getGameFont():
+    
     pil_font = ImageFont.truetype(font_path, font_size)
     game_font = font.Font(family=pil_font.getname()[0], size=font_size, weight="normal", slant="roman")
     return game_font
-
-# def convert_svg_to_png(svg_file, png_file):
-#     drawing = svg2rlg(svg_file)
-#     renderPM.drawToFile(drawing, png_file, fmt="PNG")
 
 def getButtonTopBorder():
     top_border_svg = tksvg.SvgImage(data=button_top_border)
@@ -133,32 +130,35 @@ def populatePredefinedAndCustomKeyboardGesturesList():
         ] 
         print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
         
-# def populateCustomKeyboardgesturesList():
-#     global predefinedKeyboardGesturesList, customKeyboardGesturesList
-    
-        
 def produceTrainAndTestDataset():
     X_dataset = np.loadtxt(DATASET_PATH, delimiter=',', dtype='float32', usecols=list(range(1, (21*2)+1)))
     y_dataset = np.loadtxt(DATASET_PATH, delimiter=',', dtype='int32', usecols=(0))
     X_train, X_test, y_train, y_test = train_test_split(X_dataset, y_dataset, train_size=0.75, random_state=RANDOM_SEED)
     return X_train, X_test, y_train, y_test
 
-def buildModel(model):
+def buildModel():
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Input((21 * 2, )),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.Dense(20, activation='relu'),
-        tf.keras.layers.Dropout(0.4),
-        tf.keras.layers.Dense(10, activation='relu'),
-        tf.keras.layers.Dense(NUM_CLASSES, activation='softmax')
+        tf.keras.layers.Input((21 * 2,)),  # Input layer for 42 coordinates
+        tf.keras.layers.BatchNormalization(),  # Normalize input for better performance
+        tf.keras.layers.Dense(128, activation=None, kernel_regularizer=tf.keras.regularizers.l2(0.001)),  # Wider layer
+        tf.keras.layers.LeakyReLU(),  # Leaky ReLU activation
+        tf.keras.layers.Dropout(0.3),  # Moderate dropout
+        tf.keras.layers.BatchNormalization(),
+
+        tf.keras.layers.Dense(64, activation=None, kernel_regularizer=tf.keras.regularizers.l2(0.001)),  # Another hidden layer
+        tf.keras.layers.LeakyReLU(),
+        tf.keras.layers.Dropout(0.2),  # Lower dropout for a smaller layer
+        tf.keras.layers.BatchNormalization(),
+
+        tf.keras.layers.Dense(NUM_CLASSES, activation='softmax')  # Output layer for classification
     ])
     return model
 
 def compileModel(model):
     model.compile(
-        optimizer='adam',
-        loss='sparse_categorical_crossentropy',
-        metrics=['accuracy']
+        optimizer=tf.keras.optimizers.AdamW(learning_rate=0.001, weight_decay=0.01),  # Adam with weight decay
+        loss='sparse_categorical_crossentropy',  # Works for integer-encoded labels
+        metrics=['accuracy']  # Track accuracy
     )
     return model
 
@@ -289,8 +289,6 @@ def updateKeypointCSV(index):
     updatedDataframe[0] = updatedDataframe[0].where(updatedDataframe[0] < index, updatedDataframe[0]-1)
     updatedDataframe.to_csv(DATASET_PATH, index=False, header=False)
 
-# def initializeUI():
-
 class CustomHandGestureObject:
     def __init__(self, name):
         self.name = name
@@ -417,7 +415,6 @@ class PredefinedHandGesturesUI(ttk.Frame):
     def getIdentity():
         return PREDEFINED_HG_UI
         
-
 class CustomHandGesturesUI(ttk.Frame):
     
     def __init__(self, mainFrame, root):
@@ -633,7 +630,6 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
     def getIdentity():
         return PREDEFINED_HG_MOUSE_UI
     
-    
 class CustomHandGesturesKeyboardUI(ttk.Frame):
     
     def __init__(self, mainFrame, root):
@@ -816,7 +812,6 @@ def frameButton(root, button):
     button.grid(padx=20, pady=20)
     # bottom_border_label.pack()
 
-        
 def buildButton(frame, text, actionFunc, pageName):
     button = Button(
         frame,
@@ -976,7 +971,6 @@ async def press_key_turbo(key_name):
         
     print(f"key pressed.")
 
-
 async def press_key_throttled(key_name):
     global last_key_press_time
     current_time = time.time()
@@ -1029,7 +1023,7 @@ def initiateWebCam(isGameStart):
         min_tracking_confidence=min_tracking_confidence,
     )
     
-    # KeypointClassifier mainly run through all the data from keypoint_classifier.tflite to predict what is the class of the input data, output will be choosing the class with highest probability.
+    # KeypointClassifier mainly run through all the data from keypoint_classifier.keras to predict what is the class of the input data, output will be choosing the class with highest probability.
     keypoint_classifier = KeyPointClassifier()
 
     point_history_classifier = PointHistoryClassifier()
@@ -1186,40 +1180,8 @@ def get_args():
 
 
 def main():
-    # Create a mapping for the gestures and keypresses
-    gesture_to_key = {}
-    
-    thumbUpAlgo = DistanceGroup(5000)
-    thumbDownAlgo = DistanceGroup(5000)
-    closeAlgo = DistanceGroup(5000)
-    okayAlgo = DistanceGroup(5000)
-
-    # Define the list of gestures
-    gestures = ["Middle Finger", "Thumb Up", "Thumb Down", "Peace Sign", "OK Sign", "Fist", "Close"]
-    
-    # Create a function to handle keypress events
-    def record_key(event, gesture, label):
-        # Store the hexadecimal code of the key using ord()
-        vk_code = win32api.VkKeyScan(event.char)
-        gesture_to_key[gesture] = vk_code
-        label.config(text=f"{gesture}: {vk_code}", foreground="green")
-        root.unbind("<Key>")
-
-    # Define a function to enable key recording
-    def enable_recording(gesture, label):
-        label.config(text=f"{gesture}: Press any key...", foreground="orange")
-        root.bind("<Key>", lambda event: record_key(event, gesture, label))
-
-    # Define a function that will be called when the user clicks "Proceed"
-    # def proceed():
-    #     print("Gesture to key mapping:")
-    #     for gesture, hex_code in gesture_to_key.items():
-    #         print(f"{gesture}: {hex_code}")
-    #     # Here you can add any additional actions for when the proceed button is pressed
-    #     root.quit()
-
+    # Create the tkiner UI root object declared above
     root = Root()
-
     # Run the application
     root.mainloop()
 
@@ -1242,7 +1204,6 @@ def select_mode(key, mode):
         print(f"Spacebar pressed. Number of gesture in keypoint.csv: {number}")
     return number, mode
 
-
 def calc_bounding_rect(image, landmarks):
     image_width, image_height = image.shape[1], image.shape[0]
 
@@ -1260,7 +1221,6 @@ def calc_bounding_rect(image, landmarks):
 
     return [x, y, x + w, y + h]
 
-
 def calc_landmark_list(image, landmarks):
     image_width, image_height = image.shape[1], image.shape[0]
 
@@ -1273,7 +1233,6 @@ def calc_landmark_list(image, landmarks):
         landmark_point.append([landmark_x, landmark_y])
 
     return landmark_point
-
 
 def pre_process_landmark(landmark_list):
     temp_landmark_list = copy.deepcopy(landmark_list)
@@ -1298,7 +1257,6 @@ def pre_process_landmark(landmark_list):
 
     return temp_landmark_list
 
-
 def pre_process_point_history(image, point_history):
     image_width, image_height = image.shape[1], image.shape[0]
 
@@ -1319,7 +1277,6 @@ def pre_process_point_history(image, point_history):
 
     return temp_point_history
 
-
 def logging_csv(number, mode, landmark_list, point_history_list):
     if mode == 0:
         pass
@@ -1339,8 +1296,6 @@ def logging_csv(number, mode, landmark_list, point_history_list):
             writer = csv.writer(f)
             writer.writerow([getNextSeqOfKeypointCount(), *landmark_list])
             print(f"Write into keypoint.csv for row {getNextSeqOfKeypointCount()+1}")
-        
-
 
 def draw_landmarks(image, landmark_point):
     if len(landmark_point) > 0:
@@ -1528,14 +1483,12 @@ def draw_landmarks(image, landmark_point):
 
     return image
 
-
 def draw_bounding_rect(use_brect, image, brect):
     if use_brect:
         cv.rectangle(image, (brect[0], brect[1]), (brect[2], brect[3]),
                      (0, 0, 0), 1)
 
     return image
-
 
 def draw_info_text(image, brect, handedness, hand_sign_text,
                    finger_gesture_text):
@@ -1557,7 +1510,6 @@ def draw_info_text(image, brect, handedness, hand_sign_text,
 
     return image
 
-
 def draw_point_history(image, point_history):
     for index, point in enumerate(point_history):
         if point[0] != 0 and point[1] != 0:
@@ -1565,7 +1517,6 @@ def draw_point_history(image, point_history):
                       (152, 251, 152), 2)
 
     return image
-
 
 def draw_info(image, fps, mode, number):
     cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
@@ -1584,15 +1535,5 @@ def draw_info(image, fps, mode, number):
                        cv.LINE_AA)
     return image
 
-
 if __name__ == '__main__':
     main()
-
-# def initialistPages(mainFrame, root):
-#     frames = {}
-    
-#     for page in (mainMenuUI, predefinedHandGesturesUI, customHandGesturesUI):
-#         frame = page(mainFrame, root)
-#         frames[page] = frame
-    
-#     return frames
