@@ -1134,22 +1134,22 @@ def initiateWebCam(frame, isGameStart):
 
             use_brect = True
 
-    cap = cv.VideoCapture(cap_device)
-    cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
-    cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
+            cap = cv.VideoCapture(cap_device)
+            cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
+            cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
 
-    screen_width, screen_height = pg.size()
-    
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(
-        static_image_mode=use_static_image_mode,
-        max_num_hands=2,
-        min_detection_confidence=min_detection_confidence,
-        min_tracking_confidence=min_tracking_confidence,
-    )
-    
-    # KeypointClassifier mainly run through all the data from keypoint_classifier.keras to predict what is the class of the input data, output will be choosing the class with highest probability.
-    keypoint_classifier = KeyPointClassifier()
+            screen_width, screen_height = pg.size()
+            
+            mp_hands = mp.solutions.hands
+            hands = mp_hands.Hands(
+                static_image_mode=use_static_image_mode,
+                max_num_hands=2,
+                min_detection_confidence=min_detection_confidence,
+                min_tracking_confidence=min_tracking_confidence,
+            )
+            
+            # KeypointClassifier mainly run through all the data from keypoint_classifier.keras to predict what is the class of the input data, output will be choosing the class with highest probability.
+            keypoint_classifier = KeyPointClassifier()
 
             point_history_classifier = PointHistoryClassifier()
 
@@ -1204,80 +1204,80 @@ def initiateWebCam(frame, isGameStart):
                 results = hands.process(image)
                 image.flags.writeable = True
 
-        # multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
-        if results.multi_hand_landmarks is not None:
-            for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
-                                                  results.multi_handedness):
-                brect = calc_bounding_rect(debug_image, hand_landmarks)
-                # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
-                landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+            # multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
+            if results.multi_hand_landmarks is not None:
+                for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
+                                                    results.multi_handedness):
+                    brect = calc_bounding_rect(debug_image, hand_landmarks)
+                    # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
+                    landmark_list = calc_landmark_list(debug_image, hand_landmarks)
 
-                #fingertip cursor
-                index_finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+                    #fingertip cursor
+                    index_finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
 
-                # map coordinates to screen dimensions
-                cursor_x = int(index_finger_tip.x * screen_width)
-                cursor_y = int(index_finger_tip.y * screen_height)
+                    # map coordinates to screen dimensions
+                    cursor_x = int(index_finger_tip.x * screen_width)
+                    cursor_y = int(index_finger_tip.y * screen_height)
 
-                #to call just use hand_cursor_control(cursor_x, cursor_y)
+                    #to call just use hand_cursor_control(cursor_x, cursor_y)
 
-                #fingertip cursor
+                    #fingertip cursor
 
-                        # pre_process_landmark() will normalise a list of landmarks
-                        pre_processed_landmark_list = pre_process_landmark(
-                            landmark_list)
-                        # pre_process_point_history will normalise a list of point history
-                        pre_processed_point_history_list = pre_process_point_history(
-                            debug_image, point_history)
-                        logging_csv(number, mode, pre_processed_landmark_list,
-                                    pre_processed_point_history_list)
-
-                        # keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
-                        hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
-                        if hand_sign_id == 2:
-                            point_history.append(landmark_list[8])
-                        else:
-                            point_history.append([0, 0])
-
-                        finger_gesture_id = 0
-                        point_history_len = len(pre_processed_point_history_list)
-                        if point_history_len == (history_length * 2):
-                            finger_gesture_id = point_history_classifier(
+                    # pre_process_landmark() will normalise a list of landmarks
+                    pre_processed_landmark_list = pre_process_landmark(
+                        landmark_list)
+                    # pre_process_point_history will normalise a list of point history
+                    pre_processed_point_history_list = pre_process_point_history(
+                        debug_image, point_history)
+                    logging_csv(number, mode, pre_processed_landmark_list,
                                 pre_processed_point_history_list)
 
-                        finger_gesture_history.append(finger_gesture_id)
-                        most_common_fg_id = Counter(
-                            finger_gesture_history).most_common()
-                        
-                        
-                        gesture_text = keypoint_classifier_labels[hand_sign_id]
+                    # keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
+                    hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+                    if hand_sign_id == 2:
+                        point_history.append(landmark_list[8])
+                    else:
+                        point_history.append([0, 0])
 
-                        debug_image = draw_bounding_rect(use_brect, debug_image, brect)
-                        debug_image = draw_landmarks(debug_image, landmark_list)
-                        debug_image = draw_info_text(
-                            debug_image,
-                            brect,
-                            handedness,
-                            gesture_text,
-                            point_history_classifier_labels[most_common_fg_id[0][0]],
-                        )
+                    finger_gesture_id = 0
+                    point_history_len = len(pre_processed_point_history_list)
+                    if point_history_len == (history_length * 2):
+                        finger_gesture_id = point_history_classifier(
+                            pre_processed_point_history_list)
 
-                        if isGameStart:
-                            if isTurboChecked:
-                                asyncio.run(press_key_turbo(gesture_text))
-                                print(f"Turbo is on, press_key_turbo is running")
-                            else:
-                                asyncio.run(press_key_throttled(gesture_text))
-                                print(f"Turbo is off, press_key_throttled is running")
-                        # asyncio.run(press_key_throttled("A"))
-                else:
-                    point_history.append([0, 0])
+                    finger_gesture_history.append(finger_gesture_id)
+                    most_common_fg_id = Counter(
+                        finger_gesture_history).most_common()
+                    
+                    
+                    gesture_text = keypoint_classifier_labels[hand_sign_id]
 
-                debug_image = draw_point_history(debug_image, point_history)
-                debug_image = draw_info(debug_image, fps, mode, number)
+                    debug_image = draw_bounding_rect(use_brect, debug_image, brect)
+                    debug_image = draw_landmarks(debug_image, landmark_list)
+                    debug_image = draw_info_text(
+                        debug_image,
+                        brect,
+                        handedness,
+                        gesture_text,
+                        point_history_classifier_labels[most_common_fg_id[0][0]],
+                    )
 
-                cv.imshow('HGR To Play Games', debug_image)
-                frame.after(0, hide_loading_popup, loading_window)
+                    if isGameStart:
+                        if isTurboChecked:
+                            asyncio.run(press_key_turbo(gesture_text))
+                            print(f"Turbo is on, press_key_turbo is running")
+                        else:
+                            asyncio.run(press_key_throttled(gesture_text))
+                            print(f"Turbo is off, press_key_throttled is running")
+                    # asyncio.run(press_key_throttled("A"))
+                    else:
+                        point_history.append([0, 0])
+
+                    debug_image = draw_point_history(debug_image, point_history)
+                    debug_image = draw_info(debug_image, fps, mode, number)
+
+                    cv.imshow('HGR To Play Games', debug_image)
+                    frame.after(0, hide_loading_popup, loading_window)
 
             cap.release()
             cv.destroyAllWindows()
