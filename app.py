@@ -1067,7 +1067,7 @@ mouse_mapping = {
     "MiddleClick": 0x04  # Middle mouse button
 }
 
-THROTTLE_TIME = 1
+THROTTLE_TIME = 0.1
 last_key_press_time = 0
 
 async def press_key(key_name, is_turbo=False):
@@ -1232,7 +1232,7 @@ def initiateWebCam(frame, isGameStart):
                 cv.imshow('HGR To Play Games', debug_image)
                 frame.after(0, hide_loading_popup, loading_window)
 
-                await asyncio.sleep(0)  # Yield control to other async tasks
+                # await asyncio.sleep(0)  # Yield control to other async tasks
 
             cap.release()
             cv.destroyAllWindows()
