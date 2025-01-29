@@ -1073,27 +1073,27 @@ last_key_press_time = 0
 async def press_key(key_name, is_turbo=False):
     global last_key_press_time
 
-    # Ensure the key_name is valid
-    if key_name not in key_mapping:
-        print(f"Invalid key name: {key_name}")
-        return
+    # # Ensure the key_name is valid
+    # if key_name not in key_mapping:
+    #     print(f"Invalid key name: {key_name}")
+    #     return
 
-    # Get the hex key code for the provided key name
-    hex_key_code = key_mapping[key_name]
+    # # Get the hex key code for the provided key name
+    # hex_key_code = key_mapping[key_name]
 
-    if is_turbo:
-        # Turbo mode: Hold the key down until the gesture is gone
-        win32api.keybd_event(hex_key_code, 0, 0, 0)
-        print(f"Key {key_name} held down (Turbo mode).")
-    else:
-        # Throttled mode: Press and release the key every THROTTLE_TIME seconds
-        current_time = time.time()
-        if current_time - last_key_press_time >= THROTTLE_TIME:
-            win32api.keybd_event(hex_key_code, 0, 0, 0)
-            await asyncio.sleep(0.05)  # Short delay to ensure the key press is registered
-            win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
-            last_key_press_time = current_time
-            print(f"Key {key_name} pressed (Throttled mode).")
+    # if is_turbo:
+    #     # Turbo mode: Hold the key down until the gesture is gone
+    #     win32api.keybd_event(hex_key_code, 0, 0, 0)
+    #     print(f"Key {key_name} held down (Turbo mode).")
+    # else:
+    #     # Throttled mode: Press and release the key every THROTTLE_TIME seconds
+    #     current_time = time.time()
+    #     if current_time - last_key_press_time >= THROTTLE_TIME:
+    #         win32api.keybd_event(hex_key_code, 0, 0, 0)
+    #         await asyncio.sleep(0.05)  # Short delay to ensure the key press is registered
+    #         win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
+    #         last_key_press_time = current_time
+    #         print(f"Key {key_name} pressed (Throttled mode).")
 
 # Async release key function
 async def release_key(key_name):
