@@ -41,9 +41,6 @@ from interfaces import *
 
 from distanceGroup import DistanceGroup
 
-THROTTLE_TIME = 1
-last_key_press_time = 0
-
 # global variable
 MAINMENU_UI = "mainMenuUI"
 PREDEFINED_HG_UI = "predefinedHandGesturesUI"
@@ -1070,10 +1067,11 @@ mouse_mapping = {
     "MiddleClick": 0x04  # Middle mouse button
 }
 
+THROTTLE_TIME = 0.1
+last_key_press_time = 0
 
-async def press_key_turbo(key_name):
+async def press_key(key_name, is_turbo=False):
     global last_key_press_time
-    current_time = time.time()
 
     # Ensure the key_name is valid
     if key_name not in key_mapping:
@@ -1083,22 +1081,22 @@ async def press_key_turbo(key_name):
     # Get the hex key code for the provided key name
     hex_key_code = key_mapping[key_name]
 
-    # Check if the time since the last key press is greater than the throttle time.
-    # if current_time - last_key_press_time >= THROTTLE_TIME:
-        # Press the key down
-    win32api.keybd_event(hex_key_code, 0, 0, 0)
-    # time.sleep(0.05)  # Short delay to ensure the key press is registered
-        
-        # Simulate releasing the key
-    # win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
-    last_key_press_time = current_time
-        
-    print(f"key pressed.")
+    if is_turbo:
+        # Turbo mode: Hold the key down until the gesture is gone
+        win32api.keybd_event(hex_key_code, 0, 0, 0)
+        print(f"Key {key_name} held down (Turbo mode).")
+    else:
+        # Throttled mode: Press and release the key every THROTTLE_TIME seconds
+        current_time = time.time()
+        if current_time - last_key_press_time >= THROTTLE_TIME:
+            win32api.keybd_event(hex_key_code, 0, 0, 0)
+            await asyncio.sleep(0.05)  # Short delay to ensure the key press is registered
+            win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
+            last_key_press_time = current_time
+            print(f"Key {key_name} pressed (Throttled mode).")
 
-async def press_key_throttled(key_name):
-    global last_key_press_time
-    current_time = time.time()
-
+# Async release key function
+async def release_key(key_name):
     # Ensure the key_name is valid
     if key_name not in key_mapping:
         print(f"Invalid key name: {key_name}")
@@ -1107,20 +1105,13 @@ async def press_key_throttled(key_name):
     # Get the hex key code for the provided key name
     hex_key_code = key_mapping[key_name]
 
-    # Check if the time since the last key press is greater than the throttle time.
-    # if current_time - last_key_press_time >= THROTTLE_TIME:
-        # Press the key down
-    win32api.keybd_event(hex_key_code, 0, 0, 0)
-    time.sleep(0.2)  # Short delay to ensure the key press is registered
-        
-        # Simulate releasing the key
+    # Release the key
     win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
-    last_key_press_time = current_time
-        
-    print(f"key pressed.")
-        
+    print(f"Key {key_name} released.")
+
+# WebCam processing function
 def initiateWebCam(frame, isGameStart):
-    def asyncTask():
+    async def asyncTask():
         try:
             args = get_args()
 
@@ -1137,66 +1128,50 @@ def initiateWebCam(frame, isGameStart):
             cap = cv.VideoCapture(cap_device)
             cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
             cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
-
+            print("WebCam Initiated")
             screen_width, screen_height = pg.size()
-            
+
             mp_hands = mp.solutions.hands
             hands = mp_hands.Hands(
                 static_image_mode=use_static_image_mode,
-                max_num_hands=2,
+                max_num_hands=3,  # Reduce to 1 hand for faster processing
                 min_detection_confidence=min_detection_confidence,
                 min_tracking_confidence=min_tracking_confidence,
             )
-            
-            # KeypointClassifier mainly run through all the data from keypoint_classifier.keras to predict what is the class of the input data, output will be choosing the class with highest probability.
+            print("Mediapipe Initiated")
             keypoint_classifier = KeyPointClassifier()
-
             point_history_classifier = PointHistoryClassifier()
 
-            with open('model/keypoint_classifier/keypoint_classifier_label.csv',
-                    encoding='utf-8-sig') as f:
+            with open('model/keypoint_classifier/keypoint_classifier_label.csv', encoding='utf-8-sig') as f:
                 keypoint_classifier_labels = csv.reader(f)
-                keypoint_classifier_labels = [
-                    row[0] for row in keypoint_classifier_labels
-                ]
-            with open(
-                    'model/point_history_classifier/point_history_classifier_label.csv',
-                    encoding='utf-8-sig') as f:
+                keypoint_classifier_labels = [row[0] for row in keypoint_classifier_labels]
+
+            with open('model/point_history_classifier/point_history_classifier_label.csv', encoding='utf-8-sig') as f:
                 point_history_classifier_labels = csv.reader(f)
-                point_history_classifier_labels = [
-                    row[0] for row in point_history_classifier_labels
-                ]
-
+                point_history_classifier_labels = [row[0] for row in point_history_classifier_labels]
+            print("Gesture Model Initiated")
             cvFpsCalc = CvFpsCalc(buffer_len=10)
-
+            print("FPS Calulator Initiated")
             history_length = 16
-            # point_history store most recent 16 points
             point_history = deque(maxlen=history_length)
-            #  finger_gesture_history store most recent 16 gestures 
             finger_gesture_history = deque(maxlen=history_length)
-
             mode = 0
-            
-            thumbDownCount = 0
-            thumbUpCount = 0
-            closeCount = 0
-            okayCount = 0
-
             while True:
                 fps = cvFpsCalc.get()
-                
+
                 key = cv.waitKey(10)
                 if key == 27:  # ESC
-                    
                     break
                 number, mode = select_mode(key, mode)
 
-                # means if the camera capture something, then rest is True. Else rest is False.
                 ret, image = cap.read()
                 if not ret:
                     break
                 image = cv.flip(image, 1)
                 debug_image = copy.deepcopy(image)
+
+                # Resize image for faster processing
+                image = cv.resize(image, (320, 240))
 
                 image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
 
@@ -1204,35 +1179,19 @@ def initiateWebCam(frame, isGameStart):
                 results = hands.process(image)
                 image.flags.writeable = True
 
-                # multi_hand_landmarks contains one entry if only one hand detected, each entry has 21 landmarks which represents the hand gesture.
                 if results.multi_hand_landmarks is not None:
-                    for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
-                                                        results.multi_handedness):
+                    for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
                         brect = calc_bounding_rect(debug_image, hand_landmarks)
-                        # Convert each landmark provided to (x, y) format, then normalise coordinates to pixels by multiplying widths and heights
                         landmark_list = calc_landmark_list(debug_image, hand_landmarks)
 
-                        #fingertip cursor
                         index_finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-
-                        # map coordinates to screen dimensions
                         cursor_x = int(index_finger_tip.x * screen_width)
                         cursor_y = int(index_finger_tip.y * screen_height)
 
-                        #to call just use hand_cursor_control(cursor_x, cursor_y)
+                        pre_processed_landmark_list = pre_process_landmark(landmark_list)
+                        pre_processed_point_history_list = pre_process_point_history(debug_image, point_history)
+                        logging_csv(number, mode, pre_processed_landmark_list, pre_processed_point_history_list)
 
-                        #fingertip cursor
-
-                        # pre_process_landmark() will normalise a list of landmarks
-                        pre_processed_landmark_list = pre_process_landmark(
-                            landmark_list)
-                        # pre_process_point_history will normalise a list of point history
-                        pre_processed_point_history_list = pre_process_point_history(
-                            debug_image, point_history)
-                        logging_csv(number, mode, pre_processed_landmark_list,
-                                    pre_processed_point_history_list)
-
-                        # keypoint_classifier take in a list of normalised landmarks as input, then Tensorflow lite model will run inference to classify hand gestures based on input, then produce a list of probabilities as output. The hand gesture with highest probability will be the predicted hand gesture.
                         hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
                         if hand_sign_id == 2:
                             point_history.append(landmark_list[8])
@@ -1242,14 +1201,11 @@ def initiateWebCam(frame, isGameStart):
                         finger_gesture_id = 0
                         point_history_len = len(pre_processed_point_history_list)
                         if point_history_len == (history_length * 2):
-                            finger_gesture_id = point_history_classifier(
-                                pre_processed_point_history_list)
+                            finger_gesture_id = point_history_classifier(pre_processed_point_history_list)
 
                         finger_gesture_history.append(finger_gesture_id)
-                        most_common_fg_id = Counter(
-                            finger_gesture_history).most_common()
-                        
-                        
+                        most_common_fg_id = Counter(finger_gesture_history).most_common()
+
                         gesture_text = keypoint_classifier_labels[hand_sign_id]
 
                         debug_image = draw_bounding_rect(use_brect, debug_image, brect)
@@ -1264,28 +1220,26 @@ def initiateWebCam(frame, isGameStart):
 
                         if isGameStart:
                             if isTurboChecked:
-                                asyncio.run(press_key_turbo(gesture_text))
-                                print(f"Turbo is on, press_key_turbo is running")
+                                await press_key(gesture_text, is_turbo=True)  # Non-blocking turbo mode keypress
                             else:
-                                asyncio.run(press_key_throttled(gesture_text))
-                                print(f"Turbo is off, press_key_throttled is running")
-                        # asyncio.run(press_key_throttled("A"))
-                        else:
-                            point_history.append([0, 0])
+                                await press_key(gesture_text, is_turbo=False)  # Non-blocking throttled mode keypress
+                else:
+                    point_history.append([0, 0])
 
-                        debug_image = draw_point_history(debug_image, point_history)
-                        debug_image = draw_info(debug_image, fps, mode, number)
+                debug_image = draw_point_history(debug_image, point_history)
+                debug_image = draw_info(debug_image, fps, mode, number)
 
-                        cv.imshow('HGR To Play Games', debug_image)
-                        frame.after(0, hide_loading_popup, loading_window)
+                cv.imshow('HGR To Play Games', debug_image)
+                frame.after(0, hide_loading_popup, loading_window)
+
+                # await asyncio.sleep(0)  # Yield control to other async tasks
 
             cap.release()
             cv.destroyAllWindows()
         finally:
             print("Initiate Web Cam and display loading dialog successfully.")
-            
     loading_window, spinner = show_loading_popup(frame, INITIATE_WEBCAM_LABEL)
-    threading.Thread(target=asyncTask, daemon=True).start()
+    asyncio.run(asyncTask())
 
 
 def get_args():
@@ -1293,7 +1247,7 @@ def get_args():
 
     parser.add_argument("--device", type=int, default=0)
     parser.add_argument("--width", help='cap width', type=int, default=960)
-    parser.add_argument("--height", help='cap height', type=int, default=540)
+    parser.add_argument("--height", help='cap height', type=int, default=690)
 
     parser.add_argument('--use_static_image_mode', action='store_true')
     parser.add_argument("--min_detection_confidence",
@@ -1308,7 +1262,6 @@ def get_args():
     args = parser.parse_args()
 
     return args
-
 
 def main():
     # Create the tkiner UI root object declared above
