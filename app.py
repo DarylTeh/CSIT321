@@ -17,19 +17,14 @@ from PIL import ImageFont, ImageTk
 import PIL.Image
 import PredefinedHandGestureComponent
 import CustomHandGestureComponent
-# from svglib.svglib import svg2rlg
-# from reportlab.graphics import renderPM
 
 import time
 import asyncio
 import tksvg
-# import cairosvg
-
 import cv2 as cv
 import numpy as np
 import mediapipe as mp
 import pandas as pd
-import pyautogui as pg
 
 from utils import CvFpsCalc
 from model import KeyPointClassifier
@@ -143,13 +138,13 @@ def buildModel():
     model = tf.keras.models.Sequential([
         tf.keras.layers.Input((21 * 2,)),  # Input layer for 42 coordinates
         tf.keras.layers.BatchNormalization(),  # Normalize input for better performance
-        tf.keras.layers.Dense(128, activation=None, kernel_regularizer=tf.keras.regularizers.l2(0.001)),  # Wider layer
-        tf.keras.layers.LeakyReLU(),  # Leaky ReLU activation
-        tf.keras.layers.Dropout(0.3),  # Moderate dropout
+        tf.keras.layers.Dense(128, kernel_regularizer=tf.keras.regularizers.l2(0.001)),  # Wider layer
+        tf.keras.layers.LeakyReLU(alpha=0.1),  # Leaky ReLU activation with a small slope
+        tf.keras.layers.Dropout(0.3),  # Moderate dropout for regularization
         tf.keras.layers.BatchNormalization(),
 
-        tf.keras.layers.Dense(64, activation=None, kernel_regularizer=tf.keras.regularizers.l2(0.001)),  # Another hidden layer
-        tf.keras.layers.LeakyReLU(),
+        tf.keras.layers.Dense(64, kernel_regularizer=tf.keras.regularizers.l2(0.001)),  # Another hidden layer
+        tf.keras.layers.LeakyReLU(alpha=0.1),  # Leaky ReLU activation
         tf.keras.layers.Dropout(0.2),  # Lower dropout for a smaller layer
         tf.keras.layers.BatchNormalization(),
 
@@ -706,7 +701,6 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
         # Store the hexadecimal code of the key using ord()
         vk_code = win32api.VkKeyScan(event.char)
         key_name = event.keysym
-        mouse_mapping[gesture] = vk_code
         label.config(text=f"{gesture}: {key_name}", foreground="green")
         self.root.unbind("<Key>")
 
@@ -1059,55 +1053,75 @@ key_mapping = {
     "Start": 0x0D,    # VK_RETURN (Enter/Start)
     "Select": 0x20,   # VK_SPACE (Space/Select)
     "A": 0x41,        # A key
-    "B": 0x42         # B key
-}
-mouse_mapping = {
-    "LeftClick": 0x01,   # Left mouse button
-    "RightClick": 0x02,  # Right mouse button
-    "MiddleClick": 0x04  # Middle mouse button
+    "B": 0x42,        # B key
+    # Add mouse clicks to key_mapping
+    "LeftClick": 0x01,    # Left mouse button
+    "RightClick": 0x02,   # Right mouse button
 }
 
 THROTTLE_TIME = 0.1
 last_key_press_time = 0
+
+def hand_cursor_control(cursor_x, cursor_y):
+    # Get current screen resolution
+    screen_width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
+    screen_height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
+    
+    # Ensure coordinates are within screen bounds
+    cursor_x = max(0, min(cursor_x, screen_width))
+    cursor_y = max(0, min(cursor_y, screen_height))
+    
+    # Convert to absolute coordinates (required by SetCursorPos)
+    absolute_x = int(65535 * cursor_x / screen_width)
+    absolute_y = int(65535 * cursor_y / screen_height)
+    
+    # Move cursor using win32api
+    win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE | win32con.MOUSEEVENTF_MOVE, 
+                        absolute_x, absolute_y, 0, 0)
 
 async def press_key(key_name, is_turbo=False):
     global last_key_press_time
 
     # Ensure the key_name is valid
     if key_name not in key_mapping:
-        print(f"Invalid key name: {key_name}")
         return
 
     # Get the hex key code for the provided key name
     hex_key_code = key_mapping[key_name]
 
-    if is_turbo:
-        # Turbo mode: Hold the key down until the gesture is gone
-        win32api.keybd_event(hex_key_code, 0, 0, 0)
-        print(f"Key {key_name} held down (Turbo mode).")
+    current_time = time.time()
+    
+    # Handle mouse clicks differently from keyboard events
+    if key_name in ["LeftClick", "RightClick", "MiddleClick"]:
+        if is_turbo:
+            # For turbo mode, hold down the mouse button
+            win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN if key_name == "LeftClick" else
+                               win32con.MOUSEEVENTF_RIGHTDOWN if key_name == "RightClick" else
+                               win32con.MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0)
+        else:
+            # For normal mode, click and release if throttle time has passed
+            if current_time - last_key_press_time >= THROTTLE_TIME:
+                # Press mouse button
+                win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN if key_name == "LeftClick" else
+                                   win32con.MOUSEEVENTF_RIGHTDOWN if key_name == "RightClick" else
+                                   win32con.MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0)
+                await asyncio.sleep(0.05)  # Short delay
+                # Release mouse button
+                win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP if key_name == "LeftClick" else
+                                   win32con.MOUSEEVENTF_RIGHTUP if key_name == "RightClick" else
+                                   win32con.MOUSEEVENTF_MIDDLEUP, 0, 0, 0, 0)
+                last_key_press_time = current_time
     else:
-        # Throttled mode: Press and release the key every THROTTLE_TIME seconds
-        current_time = time.time()
-        if current_time - last_key_press_time >= THROTTLE_TIME:
+        # Handle keyboard events as before
+        if is_turbo:
             win32api.keybd_event(hex_key_code, 0, 0, 0)
-            await asyncio.sleep(0.05)  # Short delay to ensure the key press is registered
-            win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
-            last_key_press_time = current_time
-            print(f"Key {key_name} pressed (Throttled mode).")
-
-# Async release key function
-async def release_key(key_name):
-    # Ensure the key_name is valid
-    if key_name not in key_mapping:
-        print(f"Invalid key name: {key_name}")
-        return
-
-    # Get the hex key code for the provided key name
-    hex_key_code = key_mapping[key_name]
-
-    # Release the key
-    win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
-    print(f"Key {key_name} released.")
+        else:
+            if current_time - last_key_press_time >= THROTTLE_TIME:
+                win32api.keybd_event(hex_key_code, 0, 0, 0)
+                await asyncio.sleep(0.05)
+                win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
+                last_key_press_time = current_time
+                print(f"Key {key_name} pressed (Throttled mode).")
 
 # WebCam processing function
 def initiateWebCam(frame, isGameStart):
@@ -1129,12 +1143,11 @@ def initiateWebCam(frame, isGameStart):
             cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
             cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
             print("WebCam Initiated")
-            screen_width, screen_height = pg.size()
 
             mp_hands = mp.solutions.hands
             hands = mp_hands.Hands(
                 static_image_mode=use_static_image_mode,
-                max_num_hands=3,  # Reduce to 1 hand for faster processing
+                max_num_hands=2,  # Reduce to 1 hand for faster processing
                 min_detection_confidence=min_detection_confidence,
                 min_tracking_confidence=min_tracking_confidence,
             )
@@ -1185,8 +1198,8 @@ def initiateWebCam(frame, isGameStart):
                         landmark_list = calc_landmark_list(debug_image, hand_landmarks)
 
                         index_finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-                        cursor_x = int(index_finger_tip.x * screen_width)
-                        cursor_y = int(index_finger_tip.y * screen_height)
+                        cursor_x = int(index_finger_tip.x * 1920)
+                        cursor_y = int(index_finger_tip.y * 1080)
 
                         pre_processed_landmark_list = pre_process_landmark(landmark_list)
                         pre_processed_point_history_list = pre_process_point_history(debug_image, point_history)
@@ -1219,6 +1232,14 @@ def initiateWebCam(frame, isGameStart):
                         )
 
                         if isGameStart:
+                            if gesture_text == "MouseMove":
+                                hand_cursor_control(cursor_x, cursor_y)
+                            else:
+                                if isGameStart:
+                                    if isTurboChecked:
+                                        await press_key(gesture_text, is_turbo=True)
+                                    else:
+                                        await press_key(gesture_text, is_turbo=False)
                             if isTurboChecked:
                                 await press_key(gesture_text, is_turbo=True)  # Non-blocking turbo mode keypress
                             else:
@@ -1247,7 +1268,7 @@ def get_args():
 
     parser.add_argument("--device", type=int, default=0)
     parser.add_argument("--width", help='cap width', type=int, default=960)
-    parser.add_argument("--height", help='cap height', type=int, default=690)
+    parser.add_argument("--height", help='cap height', type=int, default=900)
 
     parser.add_argument('--use_static_image_mode', action='store_true')
     parser.add_argument("--min_detection_confidence",
@@ -1268,9 +1289,6 @@ def main():
     root = Root()
     # Run the application
     root.mainloop()
-
-def hand_cursor_control(cursor_x, cursor_y):
-    pg.moveTo(cursor_x, cursor_y)
 
 def select_mode(key, mode):
     number = -1
