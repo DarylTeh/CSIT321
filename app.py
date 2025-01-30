@@ -1172,7 +1172,7 @@ def initiateWebCam(frame, isGameStart):
             while True:
                 fps = cvFpsCalc.get()
 
-                key = cv.waitKey(10)
+                key = cv.waitKey(1)
                 if key == 27:  # ESC
                     break
                 number, mode = select_mode(key, mode)
@@ -1198,8 +1198,8 @@ def initiateWebCam(frame, isGameStart):
                         landmark_list = calc_landmark_list(debug_image, hand_landmarks)
 
                         bottom_palm = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST]
-                        cursor_x = int(bottom_palm.x * 1920)
-                        cursor_y = int(bottom_palm.y * 1080)
+                        cursor_x = int(bottom_palm.x * 1920 * 1.3 ) #added multiplier
+                        cursor_y = int(bottom_palm.y * 1080 * 1.3 ) #added multiplier
 
                         pre_processed_landmark_list = pre_process_landmark(landmark_list)
                         pre_processed_point_history_list = pre_process_point_history(debug_image, point_history)
