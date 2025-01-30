@@ -1198,8 +1198,8 @@ def initiateWebCam(frame, isGameStart):
                         landmark_list = calc_landmark_list(debug_image, hand_landmarks)
 
                         bottom_palm = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST]
-                        cursor_x = int(bottom_palm.x * 1920 * 1.3 ) #added multiplier
-                        cursor_y = int(bottom_palm.y * 1080 * 1.3 ) #added multiplier
+                        cursor_x = int(bottom_palm.x * 1920) #added multiplier
+                        cursor_y = int(bottom_palm.y * 1080) #added multiplier and move up
 
                         pre_processed_landmark_list = pre_process_landmark(landmark_list)
                         pre_processed_point_history_list = pre_process_point_history(debug_image, point_history)
