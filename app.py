@@ -174,7 +174,7 @@ def trainModelWithCustomHandGesture(frame, text):
         try:
             model = load_model(MODEL_SAVE_PATH)
             model.save(MODEL_SAVE_PATH)
-            model = buildModel(model)
+            model = buildModel()
             model = compileModel(model)
             X_train, X_test, y_train, y_test = produceTrainAndTestDataset()
             cp_callback, es_callback = createCheckpointCallback()
@@ -196,6 +196,7 @@ def trainModelWithCustomHandGesture(frame, text):
             
 
 def show_loading_popup(root, text):
+    print(f'show_loading_popup start')
     # Create a new top-level window to display the loading spinner and label
     loading_window = tk.Toplevel(root)
     loading_window.title("Loading")
@@ -224,6 +225,7 @@ def show_loading_popup(root, text):
     spinner = ttk.Progressbar(loading_window, mode="indeterminate")
     spinner.pack(pady=10)
     spinner.start()
+    print(f'show_loading_popup started')
 
     return loading_window, spinner
 
@@ -1127,6 +1129,7 @@ async def press_key(key_name, is_turbo=False):
 def initiateWebCam(frame, isGameStart):
     async def asyncTask():
         try:
+            print(f'Initializing Web Camera start')
             args = get_args()
 
             cap_device = args.device
@@ -1257,11 +1260,18 @@ def initiateWebCam(frame, isGameStart):
 
             cap.release()
             cv.destroyAllWindows()
+            print(f'Initializing Web Cam end')
         finally:
             print("Initiate Web Cam and display loading dialog successfully.")
+      
+    def run_async_task():
+        newLoop = asyncio.new_event_loop()
+        asyncio.set_event_loop(newLoop)
+        newLoop.run_until_complete(asyncTask())
+        newLoop.close()      
+        
     loading_window, spinner = show_loading_popup(frame, INITIATE_WEBCAM_LABEL)
-    asyncio.run(asyncTask())
-
+    threading.Thread(target=run_async_task, daemon=True).start()
 
 def get_args():
     parser = argparse.ArgumentParser()
