@@ -1204,7 +1204,7 @@ def initiateWebCam(frame, isGameStart):
 
                         pre_processed_landmark_list = pre_process_landmark(landmark_list)
                         # pre_processed_point_history_list = pre_process_point_history(debug_image, point_history)
-                        # logging_csv(number, mode, pre_processed_landmark_list, pre_processed_point_history_list)
+                        logging_csv(number, mode, pre_processed_landmark_list)
 
                         hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
                         # if hand_sign_id == 2:
