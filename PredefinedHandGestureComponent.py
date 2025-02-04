@@ -2,10 +2,11 @@ from tkinter import ttk
 
 
 class HandGestureComponent(ttk.Frame):
-    def __init__(self, parent, label_text, button_command=None, *args, **kwargs):
+    def __init__(self, parent, label_text, button_command=None, key_mapping = None, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.label_text = label_text
         self.button_command = button_command
+        self.key_mapping = key_mapping
         
         # self.canvas = tk.Canvas(self, width=100, height = 50, highlightthickness=0)
         # self.canvas = tk.Canvas(self, highlightthickness=0)
@@ -17,8 +18,11 @@ class HandGestureComponent(ttk.Frame):
         container = ttk.Frame(self)
         container.place(relx=0.5, rely=0.5, anchor="center")
         self.container = container
-                
-        self.label = ttk.Label(container, text=f"{self.label_text}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
+        
+        if self.key_mapping[label_text][1]:
+            self.label = ttk.Label(container, text=f"{self.label_text}: {self.key_mapping[label_text][1]}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
+        else:         
+            self.label = ttk.Label(container, text=f"{self.label_text}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
         self.label.grid(pady=(10,5))
         
         self.button = ttk.Button(container, text="Click to record", command=lambda g=self.label_text, l=self.label: self.button_command(g, l))

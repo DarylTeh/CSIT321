@@ -65,11 +65,14 @@ predefinedMouseGesturesList = []
 customKeyboardGesturesList = []
 customMouseGesturesList = []
 isTurboChecked = False
+key_mapping = {}
+keystroke_binding = {}
 
 font_path = "VeniteAdoremus.otf"
 font_size = 15
 button_top_border = '''<svg xmlns="http://www.w3.org/2000/svg" width="603" height="22" viewBox="0 0 603 22" fill="none"><path d="M1 20.5L30 1H570.5L602 20.5" stroke="#37EBFF" stroke-width="2"/></svg>'''
 button_bottom_border = '''<svg xmlns="http://www.w3.org/2000/svg" width="603" height="22" viewBox="0 0 603 22" fill="none"><path d="M602 0.999969L573 20.5L32.5 20.5L0.999998 1.00002" stroke="#37EBFF" stroke-width="2"/></svg>'''
+KEYSTROKE_BINDING_FILEPATH = 'model/keypoint_classifier/keypoint_classifier_keystroke_binding.csv'
 
 def getGameFont():
     
@@ -92,12 +95,33 @@ def getNextSeqOfKeypointCount():
         labels_list = [row[0] for row in labels]
         return len(labels_list)
     
-def getIndexOfHGFromCSV(gesture):
-    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
+def get_key_mapping():
+    with open('model/keypoint_classifier/keypoint_classifier_keystroke_binding.csv',
               encoding='utf-8-sig') as f:
         labels = csv.reader(f)
-        labels_list = [row[0] for row in labels]
-        return labels_list.index(gesture)
+        for row in labels:
+            if len(row) >= 2:
+                gesture,vk_code = row[0], int(row[1], 16)
+                key_mapping[gesture] = vk_code
+                
+                key_name = row[2] if len(row) == 3 else ""
+                key_mapping[gesture] = (vk_code, key_name)
+
+def update_keystroke_binding(gesture, new_VK_Code, key_name):
+    print(f"update_keystroke_binding()")
+    
+    if gesture in key_mapping:
+        print(f'Gesture {gesture} in key_mapping')
+        key_mapping[gesture] = (new_VK_Code, key_name)
+    else:
+        print(f'Gesture {gesture} not in key_mapping')
+        key_mapping[gesture] = (new_VK_Code, key_name)
+    
+    with open(KEYSTROKE_BINDING_FILEPATH, 'w', newline="", encoding='utf-8-sig') as f:
+        writer = csv.writer(f)
+        for key, (value, name) in key_mapping.items():
+            writer.writerow([key, value, name])
+    
 
 def navigateTo(page):
     if page in frameList:
@@ -121,11 +145,11 @@ def populatePredefinedAndCustomKeyboardGesturesList():
         encoding='utf-8-sig') as f:
         keypoint_classifier_labels = list(csv.reader(f))
         predefinedKeyboardGesturesList = [
-            row[0] for row in keypoint_classifier_labels[:9]
+            row[0] for row in keypoint_classifier_labels[:4]
         ]
         print(f"populatePredefinedKeyboardGesturesList() result: {len(predefinedKeyboardGesturesList)}")
         customKeyboardGesturesList = [
-            row[0] for row in keypoint_classifier_labels[8:]
+            row[0] for row in keypoint_classifier_labels[4:]
         ] 
         print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
         
@@ -318,6 +342,9 @@ class Root(tk.Tk):
         mainFrame.grid_columnconfigure(0, weight=1)
         
         populatePredefinedAndCustomKeyboardGesturesList()
+        get_key_mapping()
+        for key, (value, name) in key_mapping.items():
+            print(f"Gesture: {key}, VK_Code: {str(value)}, key_name: {name}")
         # self.load_game_font()
         # self.frames = {}
         
@@ -582,12 +609,12 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
             
         # Add labels and buttons for each gesture
         for idx, gesture in enumerate(predefinedKeyboardGesturesList):
-            if idx < len(predefinedKeyboardGesturesList)-1:
+            if idx < len(predefinedKeyboardGesturesList):
 
                 componentRow = idx // MAX_COLUMN
                 componentColumn = idx % MAX_COLUMN
                 
-                hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording)
+                hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording, key_mapping = key_mapping)
                 hgComponent.grid(row=componentRow+2, column=componentColumn, ipadx=50, ipady=50)
                 
         # for row in range((len(predefinedKeyboardGesturesList) + 2) // 3):  # Total rows
@@ -604,8 +631,10 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         key_name = event.keysym
         if self.checkIfKeystrokeBound(vk_code):
             key_mapping[gesture] = vk_code
-            label.config(text=f"{gesture}: {key_name}", foreground="green")
+            label.config(text=f"{gesture}: {key_name}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
             self.root.unbind("<Key>")
+            update_keystroke_binding(gesture, vk_code, key_name)
+            keystroke_binding[gesture] = key_name
 
     # Define a function to enable key recording
     def enable_recording(self, gesture, label):
@@ -623,7 +652,8 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
     
     # Return True to bind keystroke
     def checkIfKeystrokeBound(self, vk_code):
-        if vk_code in key_mapping.values():
+        vk_codes = [value[0] for value in key_mapping.values()]
+        if vk_code in vk_codes:
             print("Found conflicted keystroke")
             return self.show_conflict_warning()
         else:
@@ -696,7 +726,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
             componentRow = idx // MAX_COLUMN
             componentColumn = idx % MAX_COLUMN
             
-            hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording)
+            hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording, key_mapping=key_mapping)
             hgComponent.grid(row=componentRow+2, column=componentColumn, ipadx=50, ipady=50)
             
             # label = ttk.Label(self, text=f"{gesture}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
@@ -727,9 +757,10 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
         key_name = event.keysym
         if self.checkIfKeystrokeBound(vk_code):
             key_mapping[gesture] = vk_code
-            label.config(text=f"{gesture}: {key_name}", foreground="green")
+            label.config(text=f"{gesture}: {key_name}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
             self.root.unbind("<Key>")
-        label.config(text=f"{gesture}: {key_name}", foreground="green")
+            update_keystroke_binding(gesture, vk_code, key_name)
+            keystroke_binding[gesture] = key_name
         self.root.unbind("<Key>")
 
     # Define a function to enable key recording
@@ -824,7 +855,7 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
                 componentRow = idx // MAX_COLUMN
                 componentColumn = idx % MAX_COLUMN
                 
-                hgComponent = CustomHandGestureComponent.HandGestureComponent(self, label_text=customHGName, button_command=self.enable_recording, delete_button_command=deleteCustomGesture)
+                hgComponent = CustomHandGestureComponent.HandGestureComponent(self, label_text=customHGName, button_command=self.enable_recording, delete_button_command=deleteCustomGesture, key_mapping=key_mapping)
                 hgComponent.grid(row=componentRow+2, column=componentColumn, ipadx=50, ipady=50)
         
         add_gesture_button = buildButton(self, "Add New Hand Gesture", navigateTo, NEW_CUSTOM_HG_UI)
@@ -841,10 +872,11 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         key_name = event.keysym
         if self.checkIfKeystrokeBound(vk_code):
             key_mapping[gesture] = vk_code
-            label.config(text=f"{gesture}: {key_name}", foreground="green")
+            label.config(text=f"{gesture}: {key_name}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
             self.root.unbind("<Key>")
+            update_keystroke_binding(gesture, vk_code, key_name)
+            keystroke_binding[gesture] = key_name
         key_mapping[gesture] = vk_code
-        label.config(text=f"{gesture}: {key_name}", foreground="green")
         self.root.unbind("<Key>")
 
     # Define a function to enable key recording
@@ -1113,19 +1145,15 @@ def buildButtonWithColor(frame, text, actionFunc, pageName, color):
 
 # Default mapping if user doesnt record keybinds, DO NOT CHANGE
 
-key_mapping = {
-    "Up": 0x26,       # VK_UP (Arrow Up)
-    "Down": 0x28,     # VK_DOWN (Arrow Down)
-    "Left": 0x25,     # VK_LEFT (Arrow Left)
-    "Right": 0x27,    # VK_RIGHT (Arrow Right)
-    "Start": 0x0D,    # VK_RETURN (Enter/Start)
-    "Select": 0x20,   # VK_SPACE (Space/Select)
-    "A": 0x41,        # A key
-    "B": 0x42,        # B key
-    # Add mouse clicks to key_mapping
-    "LeftClick": 0x01,    # Left mouse button
-    "RightClick": 0x02,   # Right mouse button
-}
+# key_mapping = {
+#     "Up": 0x26,       # VK_UP (Arrow Up)
+#     "Down": 0x28,     # VK_DOWN (Arrow Down)
+#     "Left": 0x25,     # VK_LEFT (Arrow Left)
+#     "Right": 0x27,    # VK_RIGHT (Arrow Right)
+#     # Add mouse clicks to key_mapping
+#     "LeftClick": 0x01,    # Left mouse button
+#     "RightClick": 0x02,   # Right mouse button
+# }
 
 THROTTLE_TIME = 0.1
 last_key_press_time = 0
@@ -1155,7 +1183,7 @@ async def press_key(key_name, is_turbo=False):
         return
 
     # Get the hex key code for the provided key name
-    hex_key_code = key_mapping[key_name]
+    hex_key_code = key_mapping[key_name][0]
 
     current_time = time.time()
     
