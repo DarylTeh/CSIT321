@@ -10,6 +10,7 @@ import win32con
 import tkinter as tk
 from tkinter import font
 from tkinter import ttk
+from tkinter import messagebox
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import load_model
 import tensorflow as tf
@@ -327,7 +328,7 @@ class Root(tk.Tk):
             #     page.populatePageElements(frame)
             frameList[page.getIdentity()] = frame
             frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-            
+        
         print("frames count: {0}".format(str(len(frameList))))
             
         for x in frameList:
@@ -354,6 +355,7 @@ def loadProductName(root):
     root.grid_columnconfigure(0, weight=1)
     productName = Label(root, text="GAMING WITH BARE HANDS", font=("Venite Adoremus", 30, 'bold'), fg="#FFF", bg="black", justify="center", image=root.productIcon, compound="left")
     productName.grid(row=0, column=0, columnspan=10, pady=10, sticky="nsew")
+
 
 class MainMenuUI(ttk.Frame):
     global isTurboChecked
@@ -600,15 +602,35 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         # Store the hexadecimal code of the key using ord()
         vk_code = win32api.VkKeyScan(event.char)
         key_name = event.keysym
-        key_mapping[gesture] = vk_code
-        label.config(text=f"{gesture}: {key_name}", foreground="green")
-        self.root.unbind("<Key>")
+        if self.checkIfKeystrokeBound(vk_code):
+            key_mapping[gesture] = vk_code
+            label.config(text=f"{gesture}: {key_name}", foreground="green")
+            self.root.unbind("<Key>")
 
     # Define a function to enable key recording
     def enable_recording(self, gesture, label):
         label.config(text=f"{gesture}: Press any key...", foreground="orange")
         self.root.bind("<Key>", lambda event: self.record_key(event, gesture, label))
+    
+    def show_conflict_warning(self):
+        response = messagebox.askyesno("Warning", "Please note that this keystroke was bound to other hand gesture. Do you still want to bind?")
+        if response:
+            print("Player bind existing keystroke.")
+            return True
+        else:
+            print("Player reject to bind existing keystroke.")
+            return False
+    
+    # Return True to bind keystroke
+    def checkIfKeystrokeBound(self, vk_code):
+        if vk_code in key_mapping.values():
+            print("Found conflicted keystroke")
+            return self.show_conflict_warning()
+        else:
+            print("No conflicted keystroke")
+            return True
 
+        
     # Define a function that will be called when the user clicks "Proceed"
     # def proceed(self):
     #     print("Gesture to key mapping:")
@@ -703,6 +725,10 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
         # Store the hexadecimal code of the key using ord()
         vk_code = win32api.VkKeyScan(event.char)
         key_name = event.keysym
+        if self.checkIfKeystrokeBound(vk_code):
+            key_mapping[gesture] = vk_code
+            label.config(text=f"{gesture}: {key_name}", foreground="green")
+            self.root.unbind("<Key>")
         label.config(text=f"{gesture}: {key_name}", foreground="green")
         self.root.unbind("<Key>")
 
@@ -710,6 +736,24 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
     def enable_recording(self, gesture, label):
         label.config(text=f"{gesture}: Press any key...", foreground="orange")
         self.root.bind("<Key>", lambda event: self.record_key(event, gesture, label))
+        
+    def show_conflict_warning(self):
+        response = messagebox.askyesno("Warning", "Please note that this keystroke was bound to other hand gesture. Do you still want to bind?")
+        if response:
+            print("Player bind existing keystroke.")
+            return True
+        else:
+            print("Player reject to bind existing keystroke.")
+            return False
+    
+    # Return True to bind keystroke
+    def checkIfKeystrokeBound(self, vk_code):
+        if vk_code in key_mapping.values():
+            print("Found conflicted keystroke")
+            return self.show_conflict_warning()
+        else:
+            print("No conflicted keystroke")
+            return True
 
     # Define a function that will be called when the user clicks "Proceed"
     # def proceed(self):
@@ -795,6 +839,10 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         # Store the hexadecimal code of the key using ord()
         vk_code = win32api.VkKeyScan(event.char)
         key_name = event.keysym
+        if self.checkIfKeystrokeBound(vk_code):
+            key_mapping[gesture] = vk_code
+            label.config(text=f"{gesture}: {key_name}", foreground="green")
+            self.root.unbind("<Key>")
         key_mapping[gesture] = vk_code
         label.config(text=f"{gesture}: {key_name}", foreground="green")
         self.root.unbind("<Key>")
@@ -803,6 +851,24 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
     def enable_recording(self, gesture, label):
         label.config(text=f"{gesture}: Press any key...", foreground="orange")
         self.root.bind("<Key>", lambda event: self.record_key(event, gesture, label))
+        
+    def show_conflict_warning(self):
+        response = messagebox.askyesno("Warning", "Please note that this keystroke was bound to other hand gesture. Do you still want to bind?")
+        if response:
+            print("Player bind existing keystroke.")
+            return True
+        else:
+            print("Player reject to bind existing keystroke.")
+            return False
+    
+    # Return True to bind keystroke
+    def checkIfKeystrokeBound(self, vk_code):
+        if vk_code in key_mapping.values():
+            print("Found conflicted keystroke")
+            return self.show_conflict_warning()
+        else:
+            print("No conflicted keystroke")
+            return True
         
     def getIdentity():
         return CUSTOM_HG_KEYBOARD_UI
