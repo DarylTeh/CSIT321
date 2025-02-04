@@ -307,7 +307,7 @@ class Root(tk.Tk):
         super().__init__()
         
         self.title("Playing Games with Bare Hands")
-        self.geometry("500x500")
+        self.geometry("800x800")
         self.configure(bg="#f0f0f0")
         
         mainFrame = Frame(self)
