@@ -1217,7 +1217,7 @@ async def press_key(key_name, is_turbo=False):
                 await asyncio.sleep(0.05)
                 win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
                 last_key_press_time = current_time
-                print(f"Key {key_name} pressed (Throttled mode).")
+                # print(f"Key {key_name} pressed (Throttled mode).")
 
 # WebCam processing function
 def initiateWebCam(frame, isGameStart):
@@ -1422,7 +1422,7 @@ def select_mode(key, mode):
     if key == 32:   # space bar
         mode = 3
         number = getNextSeqOfKeypointCount()
-        print(f"Spacebar pressed. Number of gesture in keypoint.csv: {number}")
+        # print(f"Spacebar pressed. Number of gesture in keypoint.csv: {number}")
     return number, mode
 
 def calc_bounding_rect(image, landmarks):
