@@ -52,7 +52,8 @@ TRAINING_LABEL = "Training ..."
 INITIATE_WEBCAM_LABEL = "Initializing webcam ..."
 
 MODEL_SAVE_PATH = "model/keypoint_classifier/keypoint_classifier.keras"
-DATASET_PATH = "model/keypoint_classifier/keypoint.csv"
+DATASET_PATH = "model/keypoint_classifier/"
+DATASET_FILENAME = 'keypoint'
 TFLITE_SAVE_PATH = 'model/keypoint_classifier/keypoint_classifier.tflite'
 RANDOM_SEED = 42
 PREDEFINEDHG_COUNT = 0
@@ -72,7 +73,13 @@ font_path = "VeniteAdoremus.otf"
 font_size = 15
 button_top_border = '''<svg xmlns="http://www.w3.org/2000/svg" width="603" height="22" viewBox="0 0 603 22" fill="none"><path d="M1 20.5L30 1H570.5L602 20.5" stroke="#37EBFF" stroke-width="2"/></svg>'''
 button_bottom_border = '''<svg xmlns="http://www.w3.org/2000/svg" width="603" height="22" viewBox="0 0 603 22" fill="none"><path d="M602 0.999969L573 20.5L32.5 20.5L0.999998 1.00002" stroke="#37EBFF" stroke-width="2"/></svg>'''
-KEYSTROKE_BINDING_FILEPATH = 'model/keypoint_classifier/keypoint_classifier_keystroke_binding.csv'
+KEYSTROKE_BINDING_FILEPATH = 'model/keypoint_classifier/'
+KEYSTROKE_BINDING_FILENAME = 'keypoint_classifier_keystroke_binding'
+FILEEXT = '.csv'
+KEYPOINT_LABEL_FILEPATH = 'model/keypoint_classifier/'
+KEYPOINT_LABEL_FILENAME = 'keypoint_classifier_label'
+isFirstRender = TRUE
+SELECTED_PROFILE = 1
 
 def getGameFont():
     
@@ -89,23 +96,42 @@ def getButtonBottomBorder():
     return bottom_border_svg
 
 def getNextSeqOfKeypointCount():
-    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
-              encoding='utf-8-sig') as f:
-        labels = csv.reader(f)
-        labels_list = [row[0] for row in labels]
-        return len(labels_list)
+    if isFirstRender:
+        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT,
+                encoding='utf-8-sig') as f:
+            labels = csv.reader(f)
+            labels_list = [row[0] for row in labels]
+            return len(labels_list)
+    else:
+        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT,
+                encoding='utf-8-sig') as f:
+            labels = csv.reader(f)
+            labels_list = [row[0] for row in labels]
+            return len(labels_list)
     
 def get_key_mapping():
-    with open('model/keypoint_classifier/keypoint_classifier_keystroke_binding.csv',
-              encoding='utf-8-sig') as f:
-        labels = csv.reader(f)
-        for row in labels:
-            if len(row) >= 2:
-                gesture,vk_code = row[0], int(row[1], 16)
-                key_mapping[gesture] = vk_code
-                
-                key_name = row[2] if len(row) == 3 else ""
-                key_mapping[gesture] = (vk_code, key_name)
+    if isFirstRender:
+        with open(KEYSTROKE_BINDING_FILEPATH + KEYSTROKE_BINDING_FILENAME + FILEEXT,
+                encoding='utf-8-sig') as f:
+            labels = csv.reader(f)
+            for row in labels:
+                if len(row) >= 2:
+                    gesture,vk_code = row[0], int(row[1], 16)
+                    key_mapping[gesture] = vk_code
+                    
+                    key_name = row[2] if len(row) == 3 else ""
+                    key_mapping[gesture] = (vk_code, key_name)
+    else:
+        with open(KEYSTROKE_BINDING_FILEPATH + KEYSTROKE_BINDING_FILENAME + str(SELECTED_PROFILE) + FILEEXT,
+                encoding='utf-8-sig') as f:
+            labels = csv.reader(f)
+            for row in labels:
+                if len(row) >= 2:
+                    gesture,vk_code = row[0], int(row[1], 16)
+                    key_mapping[gesture] = vk_code
+                    
+                    key_name = row[2] if len(row) == 3 else ""
+                    key_mapping[gesture] = (vk_code, key_name)
 
 def update_keystroke_binding(gesture, new_VK_Code, key_name):
     print(f"update_keystroke_binding()")
@@ -116,12 +142,18 @@ def update_keystroke_binding(gesture, new_VK_Code, key_name):
     else:
         print(f'Gesture {gesture} not in key_mapping')
         key_mapping[gesture] = (new_VK_Code, key_name)
-    
-    with open(KEYSTROKE_BINDING_FILEPATH, 'w', newline="", encoding='utf-8-sig') as f:
-        writer = csv.writer(f)
-        for key, (value, name) in key_mapping.items():
-            writer.writerow([key, value, name])
-    
+        
+    if isFirstRender:
+        with open(KEYSTROKE_BINDING_FILEPATH + KEYSTROKE_BINDING_FILENAME + FILEEXT, 'w', newline="", encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            for key, (value, name) in key_mapping.items():
+                writer.writerow([key, value, name])
+    else:
+        with open(KEYSTROKE_BINDING_FILEPATH + KEYSTROKE_BINDING_FILENAME + str(SELECTED_PROFILE) + FILEEXT, 'w', newline="", encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            for key, (value, name) in key_mapping.items():
+                writer.writerow([key, value, name])    
+        
 
 def navigateTo(page):
     if page in frameList:
@@ -141,17 +173,30 @@ def deleteCustomHG(gesture):
 
 def populatePredefinedAndCustomKeyboardGesturesList():
     global predefinedKeyboardGesturesList, customKeyboardGesturesList
-    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
-        encoding='utf-8-sig') as f:
-        keypoint_classifier_labels = list(csv.reader(f))
-        predefinedKeyboardGesturesList = [
-            row[0] for row in keypoint_classifier_labels[:4]
-        ]
-        print(f"populatePredefinedKeyboardGesturesList() result: {len(predefinedKeyboardGesturesList)}")
-        customKeyboardGesturesList = [
-            row[0] for row in keypoint_classifier_labels[4:]
-        ] 
-        print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
+    if isFirstRender:
+        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT,
+            encoding='utf-8-sig') as f:
+            keypoint_classifier_labels = list(csv.reader(f))
+            predefinedKeyboardGesturesList = [
+                row[0] for row in keypoint_classifier_labels[:4]
+            ]
+            print(f"populatePredefinedKeyboardGesturesList() result: {len(predefinedKeyboardGesturesList)}")
+            customKeyboardGesturesList = [
+                row[0] for row in keypoint_classifier_labels[4:]
+            ] 
+            print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
+    else:
+        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT,
+            encoding='utf-8-sig') as f:
+            keypoint_classifier_labels = list(csv.reader(f))
+            predefinedKeyboardGesturesList = [
+                row[0] for row in keypoint_classifier_labels[:4]
+            ]
+            print(f"populatePredefinedKeyboardGesturesList() result: {len(predefinedKeyboardGesturesList)}")
+            customKeyboardGesturesList = [
+                row[0] for row in keypoint_classifier_labels[4:]
+            ] 
+            print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
         
 def produceTrainAndTestDataset():
     X_dataset = np.loadtxt(DATASET_PATH, delimiter=',', dtype='float32', usecols=list(range(1, (21*2)+1)))
@@ -259,10 +304,16 @@ def hide_loading_popup(loading_window):
     loading_window.destroy()
 
 def addHandGestureToCSV(newHG):
-    with open('model/keypoint_classifier/keypoint_classifier_label.csv', mode='a', newline='', encoding='utf-8-sig') as f:
-        writer = csv.writer(f)
-        writer.writerow([newHG])
-        print(f"Added new value to keypoint CSV: {newHG}")
+    if isFirstRender:
+        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT, mode='a', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            writer.writerow([newHG])
+            print(f"Added new value to keypoint CSV: {newHG}")
+    else:
+        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT, mode='a', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            writer.writerow([newHG])
+            print(f"Added new value to keypoint CSV: {newHG}")
 
 def addNewCustomGesture(frame, newHG_name):
     enteredHGName = newHG_name.get()
@@ -299,8 +350,12 @@ def deleteCustomGesture(customHGName, frame):
     
 def deleteHandGestureFromCSV(gesture):
     print(f"deleteHandGestureFromCSV()")
-    with open('model/keypoint_classifier/keypoint_classifier_label.csv', mode='r', encoding='utf-8-sig') as f:
-        rows = list(csv.reader(f))
+    if isFirstRender:
+        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT, mode='r', encoding='utf-8-sig') as f:
+            rows = list(csv.reader(f))
+    else:
+        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT, mode='r', encoding='utf-8-sig') as f:
+            rows = list(csv.reader(f))
         
     # print(f"rows: {rows}")
     index = 0
@@ -309,9 +364,14 @@ def deleteHandGestureFromCSV(gesture):
             index = rowIndex
     updated_rows = [row for row in rows if row and row[0] != gesture]
     
-    with open('model/keypoint_classifier/keypoint_classifier_label.csv', mode='w', newline='', encoding='utf-8-sig') as f:
-        writer = csv.writer(f)
-        writer.writerows(updated_rows)
+    if isFirstRender:
+        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT, mode='w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            writer.writerows(updated_rows)
+    else:
+        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT, mode='w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            writer.writerows(updated_rows)
     
     print(f"Deleted value from keypoint csv: {gesture}")
     return index
@@ -1253,9 +1313,14 @@ def initiateWebCam(frame, isGameStart):
             keypoint_classifier = KeyPointClassifier()
             # point_history_classifier = PointHistoryClassifier()
 
-            with open('model/keypoint_classifier/keypoint_classifier_label.csv', encoding='utf-8-sig') as f:
-                keypoint_classifier_labels = csv.reader(f)
-                keypoint_classifier_labels = [row[0] for row in keypoint_classifier_labels]
+            if isFirstRender:
+                with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT, encoding='utf-8-sig') as f:
+                    keypoint_classifier_labels = csv.reader(f)
+                    keypoint_classifier_labels = [row[0] for row in keypoint_classifier_labels]
+            else:
+                with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT, encoding='utf-8-sig') as f:
+                    keypoint_classifier_labels = csv.reader(f)
+                    keypoint_classifier_labels = [row[0] for row in keypoint_classifier_labels]
 
             # with open('model/point_history_classifier/point_history_classifier_label.csv', encoding='utf-8-sig') as f:
             #     point_history_classifier_labels = csv.reader(f)
@@ -1502,21 +1567,34 @@ def logging_csv(number, mode, landmark_list):
     if mode == 0:
         pass
     if mode == 1 and (0 <= number <= 9):
-        csv_path = 'model/keypoint_classifier/keypoint.csv'
-        with open(csv_path, 'a', newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow([number, *landmark_list])
+        if isFirstRender:
+            csv_path = DATASET_PATH + DATASET_FILENAME + FILEEXT
+            with open(csv_path, 'a', newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow([number, *landmark_list])
+        else:
+            csv_path = DATASET_PATH + DATASET_FILENAME + str(SELECTED_PROFILE) + FILEEXT
+            with open(csv_path, 'a', newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow([number, *landmark_list])
     # if mode == 2 and (0 <= number <= 9):
     #     csv_path = 'model/point_history_classifier/point_history.csv'
     #     with open(csv_path, 'a', newline="") as f:
     #         writer = csv.writer(f)
     #         writer.writerow([number, *point_history_list])
     if mode == 3:
-        csv_path = 'model/keypoint_classifier/keypoint.csv'
-        with open(csv_path, 'a', newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow([getNextSeqOfKeypointCount(), *landmark_list])
-            print(f"Write into keypoint.csv for row {getNextSeqOfKeypointCount()+1}")
+        if isFirstRender:
+            csv_path = DATASET_PATH + DATASET_FILENAME + FILEEXT
+            with open(csv_path, 'a', newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow([getNextSeqOfKeypointCount(), *landmark_list])
+                print(f"Write into keypoint.csv for row {getNextSeqOfKeypointCount()+1}")
+        else:
+            csv_path = DATASET_PATH + DATASET_FILENAME + str(SELECTED_PROFILE) + FILEEXT
+            with open(csv_path, 'a', newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow([getNextSeqOfKeypointCount(), *landmark_list])
+                print(f"Write into keypoint.csv for row {getNextSeqOfKeypointCount()+1}")
 
 def draw_landmarks(image, landmark_point):
     if len(landmark_point) > 0:
