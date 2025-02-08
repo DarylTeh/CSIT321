@@ -6,5 +6,4 @@ mediapipe
 tensorflow
 tksvg
 interfaces
-threading
-pyautogui
+pandas
