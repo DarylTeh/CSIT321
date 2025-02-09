@@ -2,7 +2,7 @@ from tkinter import ttk
 
 
 class HandGestureComponent(ttk.Frame):
-    def __init__(self, parent, label_text, button_command=None, key_mapping = None, *args, **kwargs):
+    def __init__(self, parent, label_text, button_command=None, key_mapping = None, isMouse = False, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.label_text = label_text
         self.button_command = button_command
@@ -19,23 +19,27 @@ class HandGestureComponent(ttk.Frame):
         container.place(relx=0.5, rely=0.5, anchor="center")
         self.container = container
         
-        if self.key_mapping[label_text][1]:
-            self.label = ttk.Label(container, text=f"{self.label_text}: {self.key_mapping[label_text][1]}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
-        else:         
-            self.label = ttk.Label(container, text=f"{self.label_text}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
-        self.label.grid(pady=(10,5))
-        
-        self.button = ttk.Button(container, text="Click to record", command=lambda g=self.label_text, l=self.label: self.button_command(g, l))
-        self.button.grid(pady=(10,5))
-        
-        def on_enter(event, b=self.button):
-            b.config(style='Hover.TButton')
-                
-        def on_leave(event, b=self.button):
-            b.config(style='TButton')
+        if not isMouse:
+            if self.key_mapping[label_text][1]:
+                self.label = ttk.Label(container, text=f"{self.label_text}: {self.key_mapping[label_text][1]}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
+            else:         
+                self.label = ttk.Label(container, text=f"{self.label_text}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
+            self.label.grid(pady=(10,5))
+            
+            self.button = ttk.Button(container, text="Click to record", command=lambda g=self.label_text, l=self.label: self.button_command(g, l))
+            self.button.grid(pady=(10,5))
+            
+            def on_enter(event, b=self.button):
+                b.config(style='Hover.TButton')
                     
-        self.button.bind("<Enter>", on_enter)
-        self.button.bind("<Leave>", on_leave)
+            def on_leave(event, b=self.button):
+                b.config(style='TButton')
+                        
+            self.button.bind("<Enter>", on_enter)
+            self.button.bind("<Leave>", on_leave)
+        else:
+            self.label = ttk.Label(container, text=f"{self.label_text}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
+            self.label.grid(pady=(10,5))
         
         # self.update_wrapper()
         

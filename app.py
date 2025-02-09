@@ -890,7 +890,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
                 componentRow = idx // MAX_COLUMN
                 componentColumn = idx % MAX_COLUMN
                 
-                hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording, key_mapping = key_mapping)
+                hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording, key_mapping = key_mapping, isMouse=False)
                 hgComponent.grid(row=componentRow+2, column=componentColumn, ipadx=50, ipady=50)
                 
         # for row in range((len(predefinedKeyboardGesturesList) + 2) // 3):  # Total rows
@@ -1003,7 +1003,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
             componentRow = idx // MAX_COLUMN
             componentColumn = idx % MAX_COLUMN
             
-            hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording, key_mapping=key_mapping)
+            hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording, key_mapping=key_mapping, isMouse=True)
             hgComponent.grid(row=componentRow+2, column=componentColumn, ipadx=50, ipady=50)
             
             # label = ttk.Label(self, text=f"{gesture}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
