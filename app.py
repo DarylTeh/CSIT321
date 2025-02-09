@@ -43,6 +43,7 @@ import shutil
 
 # global variable
 MAINMENU_UI = "mainMenuUI"
+OPTION_UI = "optionUI"
 PREDEFINED_HG_UI = "predefinedHandGesturesUI"
 CUSTOM_HG_UI = "customHandGesturesUI"
 TESTING_HG_UI = "testingHandGesturesUI"
@@ -546,7 +547,7 @@ class Root(tk.Tk):
         # self.load_game_font()
         # self.frames = {}
         
-        for page in (MainMenuUI, PredefinedHandGesturesUI, CustomHandGesturesUI, PredefinedHandGesturesKeyboardUI, PredefinedHandGesturesMouseUI, CustomHandGesturesKeyboardUI, NewCustomHandGestureForKeyboard, NewProfileComponent):
+        for page in (MainMenuUI, PredefinedHandGesturesUI, CustomHandGesturesUI, PredefinedHandGesturesKeyboardUI, PredefinedHandGesturesMouseUI, CustomHandGesturesKeyboardUI, NewCustomHandGestureForKeyboard, NewProfileComponent, OptionUI):
             print(f"Initializing frame for {page.getIdentity()}")
             frame = page(mainFrame, self)
             # if page.getIdentity() in [PREDEFINED_HG_KEYBOARD_UI, PREDEFINED_HG_MOUSE_UI, CUSTOM_HG_KEYBOARD_UI]:
@@ -595,11 +596,11 @@ class MainMenuUI(ttk.Frame):
         title = Label(self, text=mainMenuTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
         title.grid(pady=10)
         
-        predefinedHandGesturesBtn =buildButton(self, "Predefined Hand Gestures", navigateTo, PREDEFINED_HG_UI)
-        frameButton(self, predefinedHandGesturesBtn)
+        optionBtn =buildButton(self, "Options", navigateTo, OPTION_UI)
+        frameButton(self, optionBtn)
 
-        customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", navigateTo, CUSTOM_HG_UI)
-        frameButton(self, customHandGesturesBtn)
+        # customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", navigateTo, CUSTOM_HG_UI)
+        # frameButton(self, customHandGesturesBtn)
         
         testingBtn = Button(
             self,
@@ -653,15 +654,15 @@ class MainMenuUI(ttk.Frame):
         )
         frameButton(self, startGameBtn)
         
-        label = Label(self, text="Turbo:", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")  # Align the text to the left
-        label.grid(padx=20, pady=20)
+        # label = Label(self, text="Turbo:", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")  # Align the text to the left
+        # label.grid(padx=20, pady=20)
 
-        self.turboChecked = tk.BooleanVar()
-        self.turboChecked.trace_add("write", self.onTurboChecked)
-        checkbox = ttk.Checkbutton(self, variable=self.turboChecked)
-        # isTurboChecked = self.checkbox_var.get()
-        print(f"checkbox_var: {self.turboChecked.get()}")
-        checkbox.grid(padx=20, pady=20)
+        # self.turboChecked = tk.BooleanVar()
+        # self.turboChecked.trace_add("write", self.onTurboChecked)
+        # checkbox = ttk.Checkbutton(self, variable=self.turboChecked)
+        # # isTurboChecked = self.checkbox_var.get()
+        # print(f"checkbox_var: {self.turboChecked.get()}")
+        # checkbox.grid(padx=20, pady=20)
         
         self.profiles_option = StringVar()
         
@@ -707,6 +708,46 @@ class MainMenuUI(ttk.Frame):
         
     def getIdentity():
         return MAINMENU_UI
+
+class OptionUI(ttk.Frame):
+    global isTurboChecked
+    
+    def __init__(self, mainFrame, root):
+        super().__init__(mainFrame)
+        self.root = root
+        
+        loadWallpaper(self)
+        loadProductName(self)
+        
+        title = Label(self, text=optionTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
+        title.grid(pady=10)
+        
+        predefinedHandGesturesBtn =buildButton(self, "Predefined Hand Gestures", navigateTo, PREDEFINED_HG_UI)
+        frameButton(self, predefinedHandGesturesBtn)
+
+        customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", navigateTo, CUSTOM_HG_UI)
+        frameButton(self, customHandGesturesBtn)
+        
+        label = Label(self, text="Turbo:", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")  # Align the text to the left
+        label.grid(padx=20, pady=20)
+
+        self.turboChecked = tk.BooleanVar()
+        self.turboChecked.trace_add("write", self.onTurboChecked)
+        checkbox = ttk.Checkbutton(self, variable=self.turboChecked)
+        # isTurboChecked = self.checkbox_var.get()
+        print(f"checkbox_var: {self.turboChecked.get()}")
+        checkbox.grid(padx=20, pady=20)
+        
+        doneBtn = buildDoneButton(self, "Done", navigateTo, MAINMENU_UI)
+        frameButton(self, doneBtn)
+        
+    def onTurboChecked(self, *args):
+        global isTurboChecked
+        isTurboChecked = self.turboChecked.get()
+        print(f"isTurboChecked: {isTurboChecked}")
+
+    def getIdentity():
+        return OPTION_UI
         
 class PredefinedHandGesturesUI(ttk.Frame):
     
@@ -724,7 +765,7 @@ class PredefinedHandGesturesUI(ttk.Frame):
         frameButton(self, keyboardBtn)
         mouseBtn = buildButton(self, "Mouse", navigateTo, PREDEFINED_HG_MOUSE_UI)
         frameButton(self, mouseBtn)
-        doneBtn = buildDoneButton(self, "Done", navigateTo, MAINMENU_UI)
+        doneBtn = buildDoneButton(self, "Done", navigateTo, OPTION_UI)
         frameButton(self, doneBtn)
         
         # keyboardBtn.pack(padx=20, pady=20)
@@ -750,7 +791,7 @@ class CustomHandGesturesUI(ttk.Frame):
         frameButton(self, keyboardBtn)
         # mouseBtn = buildButton(self, "Mouse", navigateTo, "TOCHANGE")
         # frameButton(self, mouseBtn)
-        doneBtn = buildDoneButton(self, "Done", navigateTo, MAINMENU_UI)
+        doneBtn = buildDoneButton(self, "Done", navigateTo, OPTION_UI)
         frameButton(self, doneBtn)
         
         # keyboardBtn.pack(padx=20, pady=20)

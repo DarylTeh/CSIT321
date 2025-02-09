@@ -1,6 +1,7 @@
 from tkinter import *
 
 mainMenuTitle = "Main Menu"
+optionTitle = "Options"
 predefinedHGTitle = "Predefined Hand Gestures Interface"
 customHGTitle = "Custom Hand Gestures Interface"
 titleSize = "50"
