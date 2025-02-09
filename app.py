@@ -279,7 +279,7 @@ def deleteCustomHG(gesture):
 
 def populatePredefinedAndCustomKeyboardGesturesList():
     print(f"populatePredefinedAndCustomKeyboardGesturesList()")
-    global predefinedKeyboardGesturesList, customKeyboardGesturesList
+    global predefinedKeyboardGesturesList, customKeyboardGesturesList, predefinedMouseGesturesList
     if isFirstRender:
         with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT,
             encoding='utf-8-sig') as f:
