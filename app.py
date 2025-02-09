@@ -287,9 +287,14 @@ def populatePredefinedAndCustomKeyboardGesturesList():
                 row[0] for row in keypoint_classifier_labels[:4]
             ]
             print(f"populatePredefinedKeyboardGesturesList() result: {len(predefinedKeyboardGesturesList)}")
-            customKeyboardGesturesList = [
-                row[0] for row in keypoint_classifier_labels[4:]
-            ] 
+            predefinedMouseGesturesList = [
+                row[0] for row in keypoint_classifier_labels[4:7]
+            ]
+            print(f"predefinedMouseGesturesList result: {len(predefinedMouseGesturesList)} ")
+            if len(keypoint_classifier_labels) > 7:
+                customKeyboardGesturesList = [
+                    row[0] for row in keypoint_classifier_labels[7:]
+                ] 
             print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
         print(f"isFirstRender: {isFirstRender}")
 
@@ -301,9 +306,14 @@ def populatePredefinedAndCustomKeyboardGesturesList():
                 row[0] for row in keypoint_classifier_labels[:4]
             ]
             print(f"populatePredefinedKeyboardGesturesList() result: {len(predefinedKeyboardGesturesList)}")
-            customKeyboardGesturesList = [
-                row[0] for row in keypoint_classifier_labels[4:]
-            ] 
+            predefinedMouseGesturesList = [
+                row[0] for row in keypoint_classifier_labels[4:7]
+            ]
+            print(f"predefinedMouseGesturesList result: {len(predefinedMouseGesturesList)} ")
+            if len(keypoint_classifier_labels) > 7:
+                customKeyboardGesturesList = [
+                    row[0] for row in keypoint_classifier_labels[7:]
+                ] 
             print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
         print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYPOINT_LABEL_PATH} loaded")
         
@@ -507,6 +517,11 @@ class CustomHandGestureObject:
 class Root(tk.Tk):
     def __init__(self):
         super().__init__()
+        loadProfileList()
+        populatePredefinedAndCustomKeyboardGesturesList()
+        get_key_mapping()
+        for key, (value, name) in key_mapping.items():
+            print(f"Gesture: {key}, VK_Code: {str(value)}, key_name: {name}")
         
         self.title("Playing Games with Bare Hands")
         self.geometry("800x800")
@@ -518,16 +533,16 @@ class Root(tk.Tk):
         mainFrame.grid_rowconfigure(0, weight=1)
         mainFrame.grid_columnconfigure(0, weight=1)
         
-        loadProfileList()
+        # loadProfileList()
         
         # if not isFirstRender:
         #     updateCurrentProfile(SELECTED_PROFILE)
         #     checkAndCreateNewCSV()
             
-        populatePredefinedAndCustomKeyboardGesturesList()
-        get_key_mapping()
-        for key, (value, name) in key_mapping.items():
-            print(f"Gesture: {key}, VK_Code: {str(value)}, key_name: {name}")
+        # populatePredefinedAndCustomKeyboardGesturesList()
+        # get_key_mapping()
+        # for key, (value, name) in key_mapping.items():
+        #     print(f"Gesture: {key}, VK_Code: {str(value)}, key_name: {name}")
         # self.load_game_font()
         # self.frames = {}
         
@@ -894,6 +909,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         return PREDEFINED_HG_KEYBOARD_UI
     
 class PredefinedHandGesturesMouseUI(ttk.Frame):
+    global predefinedMouseGesturesList
     
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame, padding=20)
@@ -1018,6 +1034,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
         return PREDEFINED_HG_MOUSE_UI
     
 class CustomHandGesturesKeyboardUI(ttk.Frame):
+    global customKeyboardGesturesList
     
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame, padding=20)
@@ -1064,7 +1081,7 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         for col in range(MAX_COLUMN):
             self.grid_columnconfigure(col, weight=1, uniform="col")
             
-        total_rows = (len(predefinedKeyboardGesturesList) + MAX_COLUMN - 1) // MAX_COLUMN
+        total_rows = (len(customKeyboardGesturesList) + MAX_COLUMN - 1) // MAX_COLUMN
         for row in range(total_rows + 2):
             self.grid_rowconfigure(row, weight=1, uniform="row")
         
