@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import font
 from tkinter import ttk
 from tkinter import messagebox
+from tkinter import StringVar
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import load_model
 import tensorflow as tf
@@ -26,6 +27,7 @@ import cv2 as cv
 import numpy as np
 import mediapipe as mp
 import pandas as pd
+import os
 
 from utils import CvFpsCalc
 from model import KeyPointClassifier
@@ -36,6 +38,8 @@ from distanceGroup import DistanceGroup
 from interfaces import *
 
 from distanceGroup import DistanceGroup
+from pathlib import Path
+import shutil
 
 # global variable
 MAINMENU_UI = "mainMenuUI"
@@ -47,6 +51,8 @@ PREDEFINED_HG_MOUSE_UI = "predefinedHandGesturesMouseUI"
 CUSTOM_HG_KEYBOARD_UI = "customHandGesturesKeyboardUI"
 CUSTOM_HG_MOUSE_UI = "customHandGesturesMouseUI"
 NEW_CUSTOM_HG_UI = "newCustomHandGestureForKeyboard"
+NEW_PROFILE_UI = "newProfileComponent"
+
 DELETING_LABEL = "Deleting ..."
 TRAINING_LABEL = "Training ..."
 INITIATE_WEBCAM_LABEL = "Initializing webcam ..."
@@ -68,6 +74,7 @@ customMouseGesturesList = []
 isTurboChecked = False
 key_mapping = {}
 keystroke_binding = {}
+profileList = []
 
 font_path = "VeniteAdoremus.otf"
 font_size = 15
@@ -78,9 +85,96 @@ KEYSTROKE_BINDING_FILENAME = 'keypoint_classifier_keystroke_binding'
 FILEEXT = '.csv'
 KEYPOINT_LABEL_FILEPATH = 'model/keypoint_classifier/'
 KEYPOINT_LABEL_FILENAME = 'keypoint_classifier_label'
-isFirstRender = TRUE
-SELECTED_PROFILE = 1
+isFirstRender = True
+SELECTED_PROFILE = "default"
+CURRENT_PROFILE_KEYSTROKE_BINDING_PATH = ''
+CURRENT_PROFILE_KEYPOINT_LABEL_PATH = ''
+CURRENT_PROFILE_KEYPOINT_PATH = ''
+TEMPLATE_KEYSTROKE_BINDING_FILEPATH = 'model/keypoint_classifier/keypoint_classifier_keystroke_binding_template.csv'
+TEMPLATE_KEYPOINT_LABEL_FILEPATH = 'model/keypoint_classifier/keypoint_classifier_label_template.csv'
+TEMPLATE_DATASET_FILEPATH = 'model/keypoint_classifier/keypoint.csv'
+PROFILES_FILEPATH = 'profiles.csv'
 
+# for now take the profile as int number
+def updateCurrentProfile(profile):
+    global SELECTED_PROFILE, CURRENT_PROFILE_KEYSTROKE_BINDING_PATH, CURRENT_PROFILE_KEYPOINT_PATH, CURRENT_PROFILE_KEYPOINT_LABEL_PATH, isFirstRender
+    if profile == "default":
+        isFirstRender = True
+        return 
+    SELECTED_PROFILE = profile
+    CURRENT_PROFILE_KEYSTROKE_BINDING_PATH = KEYSTROKE_BINDING_FILEPATH + KEYSTROKE_BINDING_FILENAME + str(profile) + FILEEXT
+    CURRENT_PROFILE_KEYPOINT_PATH = DATASET_PATH + DATASET_FILENAME + str(profile) + FILEEXT
+    CURRENT_PROFILE_KEYPOINT_LABEL_PATH = KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(profile) + FILEEXT
+    isFirstRender = False
+    
+# call this after updateCurrentProfile()
+def checkAndCreateNewCSV():
+    global CURRENT_PROFILE_KEYSTROKE_BINDING_PATH, CURRENT_PROFILE_KEYPOINT_PATH, CURRENT_PROFILE_KEYPOINT_LABEL_PATH, isFirstRender
+    if not isFirstRender:
+        if not Path(CURRENT_PROFILE_KEYSTROKE_BINDING_PATH).is_file():
+            # Path(KEYSTROKE_BINDING_FILEPATH).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(TEMPLATE_KEYSTROKE_BINDING_FILEPATH, CURRENT_PROFILE_KEYSTROKE_BINDING_PATH)
+            print(f"{CURRENT_PROFILE_KEYSTROKE_BINDING_PATH} created")
+        else:
+            print(f"{CURRENT_PROFILE_KEYSTROKE_BINDING_PATH} already existed.")
+            
+        if not Path(CURRENT_PROFILE_KEYPOINT_LABEL_PATH).is_file():
+            shutil.copy(TEMPLATE_KEYPOINT_LABEL_FILEPATH, CURRENT_PROFILE_KEYPOINT_LABEL_PATH)
+            print(f"{CURRENT_PROFILE_KEYPOINT_LABEL_PATH} created")
+        else:
+            print(f"{CURRENT_PROFILE_KEYPOINT_LABEL_PATH} already existed.")
+            
+        if not Path(CURRENT_PROFILE_KEYPOINT_PATH).is_file():
+            shutil.copy(TEMPLATE_DATASET_FILEPATH, CURRENT_PROFILE_KEYPOINT_PATH)
+            print(f"{CURRENT_PROFILE_KEYPOINT_PATH} created")
+        else:
+            print(f"{CURRENT_PROFILE_KEYPOINT_PATH} already existed.")
+            
+def show_duplicate_profile_warning():
+    messagebox.showwarning("Error", "This is a existing profile name. Please give it another name. Thank you.")
+    
+def deleteCsvFile():
+    print(f"deleteCsvFile()")
+    global CURRENT_PROFILE_KEYSTROKE_BINDING_PATH, CURRENT_PROFILE_KEYPOINT_PATH, CURRENT_PROFILE_KEYPOINT_LABEL_PATH
+    keystrokeBindingFilePath = Path(CURRENT_PROFILE_KEYSTROKE_BINDING_PATH)
+    keypointLabelFilePath = Path(CURRENT_PROFILE_KEYPOINT_LABEL_PATH)
+    datasetFilePath = Path(CURRENT_PROFILE_KEYPOINT_PATH)
+    
+    try:
+        os.remove(keystrokeBindingFilePath)
+        os.remove(keypointLabelFilePath)
+        os.remove(datasetFilePath)
+        print(f"Three csv files deleted.")
+    except Exception as e:
+        print(f"Exception occurs when deleting csv files : {e}")
+        
+def addNewProfileToCSV(profileName_entry):
+    profileName = profileName_entry.get()
+    print(f"addNewProfileToCSV()")
+    with open(PROFILES_FILEPATH, mode='a', newline="", encoding='utf-8-sig') as f:
+        writer = csv.writer(f)
+        writer.writerow([profileName])
+    print(f"Added new value to profiles CSV : {profileName}")
+        
+def setDefaultProfile():
+    global isFirstRender
+    print(f"setDefaultProfile()")
+    isFirstRender = True
+    print(f"set default as profile completed")
+    
+# def reloadAllDataAfterChangingProfile():
+    
+        
+def loadProfileList():
+    global profileList
+    print(f"loadProfileList()")
+    with open(PROFILES_FILEPATH, encoding='utf-8-sig') as f:
+        profiles = csv.reader(f)
+        profileList = [row[0] for row in profiles]
+        print(f"profileList len : {len(profileList)}")
+        for row in profileList:
+            print(f"profile: {row}")
+        
 def getGameFont():
     
     pil_font = ImageFont.truetype(font_path, font_size)
@@ -96,20 +190,24 @@ def getButtonBottomBorder():
     return bottom_border_svg
 
 def getNextSeqOfKeypointCount():
+    print(f"getNextSeqOfKeyPointCount()")
     if isFirstRender:
         with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT,
                 encoding='utf-8-sig') as f:
             labels = csv.reader(f)
             labels_list = [row[0] for row in labels]
             return len(labels_list)
+        print(f"isFirstRender: {isFirstRender}")
     else:
-        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT,
+        with open(CURRENT_PROFILE_KEYPOINT_LABEL_PATH,
                 encoding='utf-8-sig') as f:
             labels = csv.reader(f)
             labels_list = [row[0] for row in labels]
             return len(labels_list)
+        print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYPOINT_LABEL_PATH} loaded")
     
 def get_key_mapping():
+    print("get_key_mapping()")
     if isFirstRender:
         with open(KEYSTROKE_BINDING_FILEPATH + KEYSTROKE_BINDING_FILENAME + FILEEXT,
                 encoding='utf-8-sig') as f:
@@ -121,8 +219,10 @@ def get_key_mapping():
                     
                     key_name = row[2] if len(row) == 3 else ""
                     key_mapping[gesture] = (vk_code, key_name)
+        print(f"isFirstRender: {isFirstRender}")
+
     else:
-        with open(KEYSTROKE_BINDING_FILEPATH + KEYSTROKE_BINDING_FILENAME + str(SELECTED_PROFILE) + FILEEXT,
+        with open(CURRENT_PROFILE_KEYSTROKE_BINDING_PATH,
                 encoding='utf-8-sig') as f:
             labels = csv.reader(f)
             for row in labels:
@@ -132,6 +232,8 @@ def get_key_mapping():
                     
                     key_name = row[2] if len(row) == 3 else ""
                     key_mapping[gesture] = (vk_code, key_name)
+        print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYSTROKE_BINDING_PATH} loaded")
+
 
 def update_keystroke_binding(gesture, new_VK_Code, key_name):
     print(f"update_keystroke_binding()")
@@ -148,11 +250,14 @@ def update_keystroke_binding(gesture, new_VK_Code, key_name):
             writer = csv.writer(f)
             for key, (value, name) in key_mapping.items():
                 writer.writerow([key, value, name])
+        print(f"isFirstRender: {isFirstRender}")
+
     else:
-        with open(KEYSTROKE_BINDING_FILEPATH + KEYSTROKE_BINDING_FILENAME + str(SELECTED_PROFILE) + FILEEXT, 'w', newline="", encoding='utf-8-sig') as f:
+        with open(CURRENT_PROFILE_KEYSTROKE_BINDING_PATH, 'w', newline="", encoding='utf-8-sig') as f:
             writer = csv.writer(f)
             for key, (value, name) in key_mapping.items():
-                writer.writerow([key, value, name])    
+                writer.writerow([key, value, name])
+        print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYSTROKE_BINDING_PATH} loaded")
         
 
 def navigateTo(page):
@@ -172,6 +277,7 @@ def deleteCustomHG(gesture):
         print(f"HG {gesture} not exists.")
 
 def populatePredefinedAndCustomKeyboardGesturesList():
+    print(f"populatePredefinedAndCustomKeyboardGesturesList()")
     global predefinedKeyboardGesturesList, customKeyboardGesturesList
     if isFirstRender:
         with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT,
@@ -185,8 +291,10 @@ def populatePredefinedAndCustomKeyboardGesturesList():
                 row[0] for row in keypoint_classifier_labels[4:]
             ] 
             print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
+        print(f"isFirstRender: {isFirstRender}")
+
     else:
-        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT,
+        with open(CURRENT_PROFILE_KEYPOINT_LABEL_PATH,
             encoding='utf-8-sig') as f:
             keypoint_classifier_labels = list(csv.reader(f))
             predefinedKeyboardGesturesList = [
@@ -197,6 +305,7 @@ def populatePredefinedAndCustomKeyboardGesturesList():
                 row[0] for row in keypoint_classifier_labels[4:]
             ] 
             print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
+        print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYPOINT_LABEL_PATH} loaded")
         
 def produceTrainAndTestDataset():
     X_dataset = np.loadtxt(DATASET_PATH, delimiter=',', dtype='float32', usecols=list(range(1, (21*2)+1)))
@@ -304,16 +413,19 @@ def hide_loading_popup(loading_window):
     loading_window.destroy()
 
 def addHandGestureToCSV(newHG):
+    print("addHandGestureToCSV()")
     if isFirstRender:
         with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT, mode='a', newline='', encoding='utf-8-sig') as f:
             writer = csv.writer(f)
             writer.writerow([newHG])
             print(f"Added new value to keypoint CSV: {newHG}")
+        print(f"isFirstRender: {isFirstRender}")
     else:
-        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT, mode='a', newline='', encoding='utf-8-sig') as f:
+        with open(CURRENT_PROFILE_KEYPOINT_LABEL_PATH, mode='a', newline='', encoding='utf-8-sig') as f:
             writer = csv.writer(f)
             writer.writerow([newHG])
             print(f"Added new value to keypoint CSV: {newHG}")
+        print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYPOINT_LABEL_PATH} loaded")
 
 def addNewCustomGesture(frame, newHG_name):
     enteredHGName = newHG_name.get()
@@ -353,9 +465,11 @@ def deleteHandGestureFromCSV(gesture):
     if isFirstRender:
         with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT, mode='r', encoding='utf-8-sig') as f:
             rows = list(csv.reader(f))
+        print(f"isFirstRender: {isFirstRender}")
     else:
-        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT, mode='r', encoding='utf-8-sig') as f:
+        with open(CURRENT_PROFILE_KEYPOINT_LABEL_PATH, mode='r', encoding='utf-8-sig') as f:
             rows = list(csv.reader(f))
+        print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYPOINT_LABEL_PATH} loaded")
         
     # print(f"rows: {rows}")
     index = 0
@@ -368,10 +482,13 @@ def deleteHandGestureFromCSV(gesture):
         with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT, mode='w', newline='', encoding='utf-8-sig') as f:
             writer = csv.writer(f)
             writer.writerows(updated_rows)
+        print(f"isFirstRender: {isFirstRender}")
     else:
-        with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT, mode='w', newline='', encoding='utf-8-sig') as f:
+        with open(CURRENT_PROFILE_KEYPOINT_LABEL_PATH, mode='w', newline='', encoding='utf-8-sig') as f:
             writer = csv.writer(f)
             writer.writerows(updated_rows)
+        print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYPOINT_LABEL_PATH} loaded")
+
     
     print(f"Deleted value from keypoint csv: {gesture}")
     return index
@@ -401,6 +518,12 @@ class Root(tk.Tk):
         mainFrame.grid_rowconfigure(0, weight=1)
         mainFrame.grid_columnconfigure(0, weight=1)
         
+        loadProfileList()
+        
+        # if not isFirstRender:
+        #     updateCurrentProfile(SELECTED_PROFILE)
+        #     checkAndCreateNewCSV()
+            
         populatePredefinedAndCustomKeyboardGesturesList()
         get_key_mapping()
         for key, (value, name) in key_mapping.items():
@@ -408,7 +531,7 @@ class Root(tk.Tk):
         # self.load_game_font()
         # self.frames = {}
         
-        for page in (MainMenuUI, PredefinedHandGesturesUI, CustomHandGesturesUI, PredefinedHandGesturesKeyboardUI, PredefinedHandGesturesMouseUI, CustomHandGesturesKeyboardUI, NewCustomHandGestureForKeyboard):
+        for page in (MainMenuUI, PredefinedHandGesturesUI, CustomHandGesturesUI, PredefinedHandGesturesKeyboardUI, PredefinedHandGesturesMouseUI, CustomHandGesturesKeyboardUI, NewCustomHandGestureForKeyboard, NewProfileComponent):
             print(f"Initializing frame for {page.getIdentity()}")
             frame = page(mainFrame, self)
             # if page.getIdentity() in [PREDEFINED_HG_KEYBOARD_UI, PREDEFINED_HG_MOUSE_UI, CUSTOM_HG_KEYBOARD_UI]:
@@ -445,7 +568,7 @@ def loadProductName(root):
 
 
 class MainMenuUI(ttk.Frame):
-    global isTurboChecked
+    global isTurboChecked, profileList, SELECTED_PROFILE
     
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame)
@@ -524,11 +647,48 @@ class MainMenuUI(ttk.Frame):
         # isTurboChecked = self.checkbox_var.get()
         print(f"checkbox_var: {self.turboChecked.get()}")
         checkbox.grid(padx=20, pady=20)
-    
+        
+        self.profiles_option = StringVar()
+        
+        print(f"profilelist size: {len(profileList)}")
+        
+        # Set default profile
+        self.profiles_option.set(profileList[0])
+        
+        profilesMenu = OptionMenu(self, self.profiles_option, *profileList) 
+        profilesMenu.grid(row=10, column=0, padx=20, pady=20, sticky="w")
+        
+        profilesAddBtn = buildButton(self, "Add", navigateTo, NEW_PROFILE_UI)
+        profilesAddBtn.grid(row=10, column=1, pady=20, padx=20)
+        
+        profilesDeleteBtn = buildButton(self, "Delete", self.delete_profile, None)
+        profilesDeleteBtn.grid(row=10, column=2, pady=20, padx=20)
+        
+        # profileButton = buildButton(self, "Select Profile", self.show, None)
+        # profileButton.grid(padx=20, pady=20)
+        
+        profileLabel = Label(self, text = " ", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")
+        profileLabel.grid(padx=20, pady=20)
+        
+    # def onProfileSelected(self):
+        
+            
+    def delete_profile(self):
+        if len(profileList) == 1:
+            messagebox.showwarning("Warning","At least one profile must exist and cannot be deleted.")
+        else:
+            profileList.remove(SELECTED_PROFILE)
+            deleteCsvFile()
+            self.profiles_option.set(profileList[0])
+            print(f"profile {SELECTED_PROFILE} deleted")
+        
     def onTurboChecked(self, *args):
         global isTurboChecked
         isTurboChecked = self.turboChecked.get()
         print(f"isTurboChecked: {isTurboChecked}")
+        
+    def show(self):
+        self.profileLabel.config(text=self.profiles_option.get())
         
     def getIdentity():
         return MAINMENU_UI
@@ -1049,6 +1209,99 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         
     def getIdentity():
         return NEW_CUSTOM_HG_UI
+    
+class NewProfileComponent(ttk.Frame):
+    global profileList
+    
+    def __init__(self, mainFrame, root):
+        super().__init__(mainFrame, padding=20)
+        self.root = root
+        self.newProfileName = ''
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(2, weight=1)
+        
+        loadWallpaper(self)
+        loadProductName(self)
+        
+        newProfile_label = Label(self, text='Profile\'s name', font=("Venite Adoremus", 15, 'bold'), fg="#FFF", bg="black", justify="center")
+        newProfile_label.grid(row=1, column=0, padx=(0, 10), pady=5, sticky="e")
+        newProfile_entry = Entry(self, textvariable=self.newProfileName, font=("Venite Adoremus", 15, 'bold'), fg="#FFF", bg="black", justify="center")
+        newProfile_entry.grid(row=1, column=1, pady=5, sticky="w")
+        
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure('TButton', font=('Arial', 12), padding=5)
+        style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
+        style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
+        style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
+        
+        print(f"Total count in profiles: {len(profileList)}")
+        
+        # done_button = buildDoneButton(self, "Done", addNewCustomGesture, newHG_entry)
+        done_button = Button(
+            self,
+            text="Done",
+            command= lambda: self.add_profiles(newProfile_entry),
+            activebackground="blue",
+            activeforeground="white",
+            anchor="center",
+            bd=3,
+            bg="black",
+            cursor="hand2",
+            foreground="#37EBFF",
+            fg="#37EBFF",
+            font=getGameFont(),
+            height=2,
+            highlightbackground="black",
+            highlightcolor="green",
+            highlightthickness=2,
+            justify="center",
+            overrelief="raised",
+            padx=10,
+            pady=5,
+            width=25,
+            wraplength=0
+        )
+        done_button.grid(row=2, column=0, columnspan=2, pady=20)
+        
+    def addNewCustomGesture(frame, newHG_name):
+        enteredHGName = newHG_name.get()
+        print(f"addNewCustomGesture(), argument: {enteredHGName}")
+        if enteredHGName != "":
+            # customHG = CustomHandGestureObject(enteredHGName)
+            customKeyboardGesturesList.append(enteredHGName)
+            print(f"customKeyboardGesturesList count: {len(customKeyboardGesturesList)}")
+            newHG_name.delete(0, tk.END)
+            addHandGestureToCSV(enteredHGName)
+            trainModelWithCustomHandGesture(frame, TRAINING_LABEL)
+        navigateTo(CUSTOM_HG_KEYBOARD_UI)
+        
+    def isNewProfileExists(self, newProfile_entry):
+        enteredProfileName = newProfile_entry.get()
+        print(f"isNewProfileExists(), argument: {enteredProfileName}")
+        for name in profileList:
+            if name == enteredProfileName:
+                print(f"{enteredProfileName} profile already exists")
+                return True
+        print(f"{enteredProfileName} does not exist")
+        return False
+        
+    def add_profiles(self, newProfile_entry):
+        print(f"add_profiles()")
+        isProfileExist = self.isNewProfileExists(newProfile_entry)
+        if not isProfileExist:
+            print(f"profileList count before appending : {len(profileList)}")
+            profileList.append(newProfile_entry.get())
+            print(f"profileList count after appending : {len(profileList)}")
+            addNewProfileToCSV(newProfile_entry)
+            updateCurrentProfile(newProfile_entry.get())
+            checkAndCreateNewCSV()
+            navigateTo(MAINMENU_UI)
+        else:
+            show_duplicate_profile_warning()
+        
+    def getIdentity():
+        return NEW_PROFILE_UI
         
 class TestingHGUI(ttk.Frame):
     
@@ -1281,6 +1534,7 @@ async def press_key(key_name, is_turbo=False):
 
 # WebCam processing function
 def initiateWebCam(frame, isGameStart):
+    print(f"initiateWebCam()")
     async def asyncTask():
         try:
             print(f'Initializing Web Camera start')
@@ -1317,10 +1571,14 @@ def initiateWebCam(frame, isGameStart):
                 with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT, encoding='utf-8-sig') as f:
                     keypoint_classifier_labels = csv.reader(f)
                     keypoint_classifier_labels = [row[0] for row in keypoint_classifier_labels]
+                print(f"isFirstRender: {isFirstRender}")
+
             else:
-                with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + str(SELECTED_PROFILE) + FILEEXT, encoding='utf-8-sig') as f:
+                with open(CURRENT_PROFILE_KEYPOINT_LABEL_PATH, encoding='utf-8-sig') as f:
                     keypoint_classifier_labels = csv.reader(f)
                     keypoint_classifier_labels = [row[0] for row in keypoint_classifier_labels]
+                print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYPOINT_LABEL_PATH} loaded")
+
 
             # with open('model/point_history_classifier/point_history_classifier_label.csv', encoding='utf-8-sig') as f:
             #     point_history_classifier_labels = csv.reader(f)
@@ -1572,11 +1830,13 @@ def logging_csv(number, mode, landmark_list):
             with open(csv_path, 'a', newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow([number, *landmark_list])
+            print(f"isFirstRender: {isFirstRender} for logging_csv()")
         else:
-            csv_path = DATASET_PATH + DATASET_FILENAME + str(SELECTED_PROFILE) + FILEEXT
+            csv_path = CURRENT_PROFILE_KEYPOINT_PATH
             with open(csv_path, 'a', newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow([number, *landmark_list])
+            print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYPOINT_PATH} loaded for logging_csv()")
     # if mode == 2 and (0 <= number <= 9):
     #     csv_path = 'model/point_history_classifier/point_history.csv'
     #     with open(csv_path, 'a', newline="") as f:
@@ -1589,12 +1849,14 @@ def logging_csv(number, mode, landmark_list):
                 writer = csv.writer(f)
                 writer.writerow([getNextSeqOfKeypointCount(), *landmark_list])
                 print(f"Write into keypoint.csv for row {getNextSeqOfKeypointCount()+1}")
+            print(f"isFirstRender: {isFirstRender} for logging_csv()")
         else:
-            csv_path = DATASET_PATH + DATASET_FILENAME + str(SELECTED_PROFILE) + FILEEXT
+            csv_path = CURRENT_PROFILE_KEYPOINT_PATH
             with open(csv_path, 'a', newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow([getNextSeqOfKeypointCount(), *landmark_list])
                 print(f"Write into keypoint.csv for row {getNextSeqOfKeypointCount()+1}")
+            print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYPOINT_PATH} loaded for logging_csv()")
 
 def draw_landmarks(image, landmark_point):
     if len(landmark_point) > 0:
