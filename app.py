@@ -96,10 +96,35 @@ TEMPLATE_KEYPOINT_LABEL_FILEPATH = 'model/keypoint_classifier/keypoint_classifie
 TEMPLATE_DATASET_FILEPATH = 'model/keypoint_classifier/keypoint.csv'
 PROFILES_FILEPATH = 'profiles.csv'
 
+# After select another profile, update current profile, check if the csv files for current selected profile exists, then load all data from respective csv files
+# this method will just load the data from respoective csv files.
+def reloadProfileDependantData():
+    print(f"reloadProfileDependantData()")
+    global predefinedKeyboardGesturesList, predefinedMouseGesturesList, customKeyboardGesturesList
+    
+    predefinedKeyboardGesturesList.clear()
+    predefinedMouseGesturesList.clear()
+    customKeyboardGesturesList.clear()
+    reloadKeyMappingData()
+    populatePredefinedAndCustomKeyboardGesturesList()
+    reloadProfilesData()
+    
+def reloadKeyMappingData():
+    global key_mapping
+    key_mapping.clear()
+    get_key_mapping()
+    
+def reloadProfilesData():
+    global profileList
+    profileList.clear()
+    loadProfileList()
+
 # for now take the profile as int number
 def updateCurrentProfile(profile):
-    global SELECTED_PROFILE, CURRENT_PROFILE_KEYSTROKE_BINDING_PATH, CURRENT_PROFILE_KEYPOINT_PATH, CURRENT_PROFILE_KEYPOINT_LABEL_PATH, isFirstRender
-    if profile == "default":
+    print(f"updateCurrentProfile()")
+    global SELECTED_PROFILE, CURRENT_PROFILE_KEYSTROKE_BINDING_PATH, CURRENT_PROFILE_KEYPOINT_PATH, CURRENT_PROFILE_KEYPOINT_LABEL_PATH, isFirstRender, profileList
+    if profile == profileList[0]:
+        SELECTED_PROFILE = profileList[0]
         isFirstRender = True
         return 
     SELECTED_PROFILE = profile
@@ -110,6 +135,7 @@ def updateCurrentProfile(profile):
     
 # call this after updateCurrentProfile()
 def checkAndCreateNewCSV():
+    print(f"checkAndCreateNewCSV()")
     global CURRENT_PROFILE_KEYSTROKE_BINDING_PATH, CURRENT_PROFILE_KEYPOINT_PATH, CURRENT_PROFILE_KEYPOINT_LABEL_PATH, isFirstRender
     if not isFirstRender:
         if not Path(CURRENT_PROFILE_KEYSTROKE_BINDING_PATH).is_file():
@@ -148,7 +174,18 @@ def deleteCsvFile():
         print(f"Three csv files deleted.")
     except Exception as e:
         print(f"Exception occurs when deleting csv files : {e}")
-        
+
+def deleteProfileFromCSV(profileName):
+    print(f"DeleteProfileFromCSV()")
+    global profileList, PROFILES_FILEPATH
+    
+    with open(PROFILES_FILEPATH, "r", newline="", encoding='utf-8-sig') as f:
+        reader = csv.reader(f)
+        rows = [row for row in reader if row != [profileName]]
+    with open(PROFILES_FILEPATH, "w", newline="", encoding='utf-8-sig') as f:
+        writer = csv.writer(f)
+        writer.writerows(rows)
+
 def addNewProfileToCSV(profileName_entry):
     profileName = profileName_entry.get()
     print(f"addNewProfileToCSV()")
@@ -264,7 +301,7 @@ def update_keystroke_binding(gesture, new_VK_Code, key_name):
 def navigateTo(page):
     if page in frameList:
         frame = frameList[page]
-        if page in [PREDEFINED_HG_KEYBOARD_UI, PREDEFINED_HG_MOUSE_UI, CUSTOM_HG_KEYBOARD_UI]:
+        if page in [MAINMENU_UI, PREDEFINED_HG_KEYBOARD_UI, PREDEFINED_HG_MOUSE_UI, CUSTOM_HG_KEYBOARD_UI]:
             frame.populatePageElements()
         frame.tkraise()
         print(f"Frame {page} get loaded")
@@ -670,6 +707,7 @@ class MainMenuUI(ttk.Frame):
         
         # Set default profile
         self.profiles_option.set(profileList[0])
+        self.profiles_option.trace_add("write", self.onProfileSelected)
         
         profilesMenu = OptionMenu(self, self.profiles_option, *profileList) 
         profilesMenu.grid(row=10, column=0, padx=20, pady=20, sticky="w")
@@ -686,17 +724,129 @@ class MainMenuUI(ttk.Frame):
         profileLabel = Label(self, text = " ", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")
         profileLabel.grid(padx=20, pady=20)
         
-    # def onProfileSelected(self):
+    def populatePageElements(self):
+        print(f"MainMenuUI populatePageElements()")
         
+        for widget in self.winfo_children():
+            widget.destroy()
+            
+        loadWallpaper(self)
+        loadProductName(self)
+        
+        title = Label(self, text=mainMenuTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
+        title.grid(pady=10)
+        
+        optionBtn =buildButton(self, "Options", navigateTo, OPTION_UI)
+        frameButton(self, optionBtn)
+
+        # customHandGesturesBtn = buildButton(self, "Custom Hand Gestures", navigateTo, CUSTOM_HG_UI)
+        # frameButton(self, customHandGesturesBtn)
+        
+        testingBtn = Button(
+            self,
+            text="Test Hand Gestures",
+            command= lambda: initiateWebCam(self, False),
+            activebackground="blue",
+            activeforeground="white",
+            anchor="center",
+            bd=3,
+            bg="black",
+            cursor="hand2",
+            foreground="#37EBFF",
+            fg="#37EBFF",
+            font=getGameFont(),
+            height=2,
+            highlightbackground="black",
+            highlightcolor="green",
+            highlightthickness=2,
+            justify="center",
+            overrelief="raised",
+            padx=10,
+            pady=5,
+            width=25,
+            wraplength=0
+        )
+        frameButton(self, testingBtn)
+        
+        startGameBtn = Button(
+            self,
+            text="Start Game",
+            command= lambda: initiateWebCam(self, True),
+            activebackground="blue",
+            activeforeground="white",
+            anchor="center",
+            bd=3,
+            bg="black",
+            cursor="hand2",
+            foreground="#37EBFF",
+            fg="#37EBFF",
+            font=getGameFont(),
+            height=2,
+            highlightbackground="black",
+            highlightcolor="green",
+            highlightthickness=2,
+            justify="center",
+            overrelief="raised",
+            padx=10,
+            pady=5,
+            width=25,
+            wraplength=0
+        )
+        frameButton(self, startGameBtn)
+        
+        # label = Label(self, text="Turbo:", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")  # Align the text to the left
+        # label.grid(padx=20, pady=20)
+
+        # self.turboChecked = tk.BooleanVar()
+        # self.turboChecked.trace_add("write", self.onTurboChecked)
+        # checkbox = ttk.Checkbutton(self, variable=self.turboChecked)
+        # # isTurboChecked = self.checkbox_var.get()
+        # print(f"checkbox_var: {self.turboChecked.get()}")
+        # checkbox.grid(padx=20, pady=20)
+        
+        self.profiles_option = StringVar()
+        
+        print(f"profilelist size: {len(profileList)}")
+        
+        # Set default profile
+        self.profiles_option.set(SELECTED_PROFILE)
+        self.profiles_option.trace_add("write", self.onProfileSelected)
+        
+        profilesMenu = OptionMenu(self, self.profiles_option, *profileList) 
+        profilesMenu.grid(row=10, column=0, padx=20, pady=20, sticky="w")
+        
+        profilesAddBtn = buildButton(self, "Add", navigateTo, NEW_PROFILE_UI)
+        profilesAddBtn.grid(row=10, column=1, pady=20, padx=20)
+        
+        profilesDeleteBtn = buildButton(self, "Delete", self.delete_profile, None)
+        profilesDeleteBtn.grid(row=10, column=2, pady=20, padx=20)
+        
+        # profileButton = buildButton(self, "Select Profile", self.show, None)
+        # profileButton.grid(padx=20, pady=20)
+        
+        profileLabel = Label(self, text = " ", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")
+        profileLabel.grid(padx=20, pady=20)
+        
+    def onProfileSelected(self, *args):
+        selectedProfile = self.profiles_option.get()
+        print(f"Profile {selectedProfile} selected")
+        updateCurrentProfile(selectedProfile)
+        checkAndCreateNewCSV()
+        reloadProfileDependantData()
             
     def delete_profile(self):
         if len(profileList) == 1:
             messagebox.showwarning("Warning","At least one profile must exist and cannot be deleted.")
         else:
-            profileList.remove(SELECTED_PROFILE)
-            deleteCsvFile()
-            self.profiles_option.set(profileList[0])
-            print(f"profile {SELECTED_PROFILE} deleted")
+            response = messagebox.askyesno("Warning", "Dear player, are you sure you want to delete the profile "+ str(SELECTED_PROFILE)+"?")
+            if response:
+                profileList.remove(SELECTED_PROFILE)
+                deleteCsvFile()
+                deleteProfileFromCSV(SELECTED_PROFILE)
+                print(f"profile {SELECTED_PROFILE} deleted")
+                updateCurrentProfile(profileList[0])
+                self.profiles_option.set(SELECTED_PROFILE)
+                self.populatePageElements()
         
     def onTurboChecked(self, *args):
         global isTurboChecked
@@ -925,7 +1075,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         else:
             print("Player reject to bind existing keystroke.")
             return False
-    
+        
     # Return True to bind keystroke
     def checkIfKeystrokeBound(self, vk_code):
         vk_codes = [value[0] for value in key_mapping.values()]
@@ -1352,8 +1502,10 @@ class NewProfileComponent(ttk.Frame):
             profileList.append(newProfile_entry.get())
             print(f"profileList count after appending : {len(profileList)}")
             addNewProfileToCSV(newProfile_entry)
-            updateCurrentProfile(newProfile_entry.get())
-            checkAndCreateNewCSV()
+            reloadProfilesData()
+            newProfile_entry.delete(0, "end")
+            # updateCurrentProfile(newProfile_entry.get())
+            # checkAndCreateNewCSV()
             navigateTo(MAINMENU_UI)
         else:
             show_duplicate_profile_warning()
