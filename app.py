@@ -619,6 +619,101 @@ def loadProductName(root):
     productName = Label(root, text="GAMING WITH BARE HANDS", font=("Venite Adoremus", 30, 'bold'), fg="#FFF", bg="black", justify="center", image=root.productIcon, compound="left")
     productName.grid(row=0, column=0, columnspan=10, pady=10, sticky="nsew")
 
+class ProfileSelection(ttk.Frame):
+    global profileList, SELECTED_PROFILE
+    def __init__(self, parent):
+        super().__init__(parent)
+        
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self.columnconfigure(2, weight=1)
+
+        self.profiles_option = StringVar()
+        self.profiles_option.set(SELECTED_PROFILE)
+        self.profiles_option.trace_add("write", self.onProfileSelected)
+        
+        # Create OptionMenu
+        self.profilesMenu = OptionMenu(self, self.profiles_option, *profileList)
+        self.profilesMenu.config(
+            bg="black",
+            fg="#FFF",
+            # activebackground="#FFF",
+            activeforeground="black",
+            font=("Venite Adoremus", 16),
+            border=0,
+            highlightthickness=1,
+            highlightbackground="black",
+            pady=20,
+            indicatoron=0,
+            width=25  # Matching width with buttons
+        )
+        self.profilesMenu.grid(row=0, column=0, padx=10, pady=10)
+
+        # Add Button
+        self.profilesAddBtn = buildButton(self, "Add", navigateTo, NEW_PROFILE_UI)
+        self.profilesAddBtn.config(width=10)  # Matching width
+        self.profilesAddBtn.grid(row=0, column=1, padx=10, pady=10)
+
+        # Delete Button
+        self.profilesDeleteBtn = buildButton(self, "Delete", self.delete_profile, None)
+        self.profilesDeleteBtn.config(width=10)  # Matching width
+        self.profilesDeleteBtn.grid(row=0, column=2, padx=10, pady=10)
+        
+    def populatePageElements(self):
+        for widget in self.winfo_children():
+            widget.destroy()
+            
+        self.profiles_option = StringVar()
+        self.profiles_option.set(SELECTED_PROFILE)
+        self.profiles_option.trace_add("write", self.onProfileSelected)
+
+        # Create OptionMenu
+        self.profilesMenu = OptionMenu(self, self.profiles_option, *profileList)
+        self.profilesMenu.config(
+            bg="black",
+            fg="#FFF",
+            # activebackground="#FFF",
+            activeforeground="black",
+            font=("Venite Adoremus", 16),
+            border=0,
+            highlightthickness=1,
+            highlightbackground="black",
+            pady=20,
+            indicatoron=0,
+            width=25  # Matching width with buttons
+        )
+        self.profilesMenu.grid(row=0, column=0, padx=10, pady=10)
+
+        # Add Button
+        self.profilesAddBtn = buildButton(self, "Add", navigateTo, NEW_PROFILE_UI)
+        self.profilesAddBtn.config(width=10)  # Matching width
+        self.profilesAddBtn.grid(row=0, column=1, padx=10, pady=10)
+
+        # Delete Button
+        self.profilesDeleteBtn = buildButton(self, "Delete", self.delete_profile, None)
+        self.profilesDeleteBtn.config(width=10)  # Matching width
+        self.profilesDeleteBtn.grid(row=0, column=2, padx=10, pady=10)
+        
+    def onProfileSelected(self, *args):
+        selectedProfile = self.profiles_option.get()
+        print(f"Profile {selectedProfile} selected")
+        updateCurrentProfile(selectedProfile)
+        checkAndCreateNewCSV()
+        reloadProfileDependantData()
+            
+    def delete_profile(self):
+        if len(profileList) == 1:
+            messagebox.showwarning("Warning","At least one profile must exist and cannot be deleted.")
+        else:
+            response = messagebox.askyesno("Warning", "Dear player, are you sure you want to delete the profile "+ str(SELECTED_PROFILE)+"?")
+            if response:
+                profileList.remove(SELECTED_PROFILE)
+                deleteCsvFile()
+                deleteProfileFromCSV(SELECTED_PROFILE)
+                print(f"profile {SELECTED_PROFILE} deleted")
+                updateCurrentProfile(profileList[0])
+                self.profiles_option.set(SELECTED_PROFILE)
+                self.populatePageElements()
 
 class MainMenuUI(ttk.Frame):
     global isTurboChecked, profileList, SELECTED_PROFILE
@@ -701,28 +796,40 @@ class MainMenuUI(ttk.Frame):
         # print(f"checkbox_var: {self.turboChecked.get()}")
         # checkbox.grid(padx=20, pady=20)
         
-        self.profiles_option = StringVar()
+        # self.profiles_option = StringVar()
         
-        print(f"profilelist size: {len(profileList)}")
+        # print(f"profilelist size: {len(profileList)}")
         
         # Set default profile
-        self.profiles_option.set(profileList[0])
-        self.profiles_option.trace_add("write", self.onProfileSelected)
+        # self.profiles_option.set(profileList[0])
+        # self.profiles_option.trace_add("write", self.onProfileSelected)
         
-        profilesMenu = OptionMenu(self, self.profiles_option, *profileList) 
-        profilesMenu.grid(row=10, column=0, padx=20, pady=20, sticky="w")
+        # profilesMenu = OptionMenu(self, self.profiles_option, *profileList)
+        # profilesMenu.config(
+        #     bg="black",
+        #     fg="#FFF",
+        #     activebackground="#FFF",
+        #     activeforeground="black",
+        #     font=("Venite Adoremus", 16),
+        #     border=0,
+        #     highlightthickness=1,
+        #     highlightbackground="black",
+        #     pady=20,
+        #     indicatoron=0
+        # ) 
+        # profilesMenu.grid(row=10, column=0, padx=20, pady=20, sticky="w")
         
-        profilesAddBtn = buildButton(self, "Add", navigateTo, NEW_PROFILE_UI)
-        profilesAddBtn.grid(row=10, column=1, pady=20, padx=20)
+        # profilesAddBtn = buildButton(self, "Add", navigateTo, NEW_PROFILE_UI)
+        # profilesAddBtn.grid(row=10, column=1, pady=20, padx=20)
         
-        profilesDeleteBtn = buildButton(self, "Delete", self.delete_profile, None)
-        profilesDeleteBtn.grid(row=10, column=2, pady=20, padx=20)
+        # profilesDeleteBtn = buildButton(self, "Delete", self.delete_profile, None)
+        # profilesDeleteBtn.grid(row=10, column=2, pady=20, padx=20)
         
         # profileButton = buildButton(self, "Select Profile", self.show, None)
         # profileButton.grid(padx=20, pady=20)
         
-        profileLabel = Label(self, text = " ", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")
-        profileLabel.grid(padx=20, pady=20)
+        self.profileFrame = ProfileSelection(self)
+        self.profileFrame.grid(row=10, column=0, columnspan=3, pady=5, padx=10, sticky= "ew")
         
     def populatePageElements(self):
         print(f"MainMenuUI populatePageElements()")
@@ -794,59 +901,29 @@ class MainMenuUI(ttk.Frame):
         )
         frameButton(self, startGameBtn)
         
-        # label = Label(self, text="Turbo:", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")  # Align the text to the left
-        # label.grid(padx=20, pady=20)
-
-        # self.turboChecked = tk.BooleanVar()
-        # self.turboChecked.trace_add("write", self.onTurboChecked)
-        # checkbox = ttk.Checkbutton(self, variable=self.turboChecked)
-        # # isTurboChecked = self.checkbox_var.get()
-        # print(f"checkbox_var: {self.turboChecked.get()}")
-        # checkbox.grid(padx=20, pady=20)
+        self.profileFrame = ProfileSelection(self)
+        self.profileFrame.grid(row=10, column=0, columnspan=3, pady=5, padx=10, sticky= "ew")
         
-        self.profiles_option = StringVar()
-        
-        print(f"profilelist size: {len(profileList)}")
-        
-        # Set default profile
-        self.profiles_option.set(SELECTED_PROFILE)
-        self.profiles_option.trace_add("write", self.onProfileSelected)
-        
-        profilesMenu = OptionMenu(self, self.profiles_option, *profileList) 
-        profilesMenu.grid(row=10, column=0, padx=20, pady=20, sticky="w")
-        
-        profilesAddBtn = buildButton(self, "Add", navigateTo, NEW_PROFILE_UI)
-        profilesAddBtn.grid(row=10, column=1, pady=20, padx=20)
-        
-        profilesDeleteBtn = buildButton(self, "Delete", self.delete_profile, None)
-        profilesDeleteBtn.grid(row=10, column=2, pady=20, padx=20)
-        
-        # profileButton = buildButton(self, "Select Profile", self.show, None)
-        # profileButton.grid(padx=20, pady=20)
-        
-        profileLabel = Label(self, text = " ", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", anchor="w", justify="center")
-        profileLabel.grid(padx=20, pady=20)
-        
-    def onProfileSelected(self, *args):
-        selectedProfile = self.profiles_option.get()
-        print(f"Profile {selectedProfile} selected")
-        updateCurrentProfile(selectedProfile)
-        checkAndCreateNewCSV()
-        reloadProfileDependantData()
+    # def onProfileSelected(self, *args):
+    #     selectedProfile = self.profiles_option.get()
+    #     print(f"Profile {selectedProfile} selected")
+    #     updateCurrentProfile(selectedProfile)
+    #     checkAndCreateNewCSV()
+    #     reloadProfileDependantData()
             
-    def delete_profile(self):
-        if len(profileList) == 1:
-            messagebox.showwarning("Warning","At least one profile must exist and cannot be deleted.")
-        else:
-            response = messagebox.askyesno("Warning", "Dear player, are you sure you want to delete the profile "+ str(SELECTED_PROFILE)+"?")
-            if response:
-                profileList.remove(SELECTED_PROFILE)
-                deleteCsvFile()
-                deleteProfileFromCSV(SELECTED_PROFILE)
-                print(f"profile {SELECTED_PROFILE} deleted")
-                updateCurrentProfile(profileList[0])
-                self.profiles_option.set(SELECTED_PROFILE)
-                self.populatePageElements()
+    # def delete_profile(self):
+    #     if len(profileList) == 1:
+    #         messagebox.showwarning("Warning","At least one profile must exist and cannot be deleted.")
+    #     else:
+    #         response = messagebox.askyesno("Warning", "Dear player, are you sure you want to delete the profile "+ str(SELECTED_PROFILE)+"?")
+    #         if response:
+    #             profileList.remove(SELECTED_PROFILE)
+    #             deleteCsvFile()
+    #             deleteProfileFromCSV(SELECTED_PROFILE)
+    #             print(f"profile {SELECTED_PROFILE} deleted")
+    #             updateCurrentProfile(profileList[0])
+    #             self.profiles_option.set(SELECTED_PROFILE)
+    #             self.profileFrame.populatePageElements()
         
     def onTurboChecked(self, *args):
         global isTurboChecked
@@ -1471,6 +1548,9 @@ class NewProfileComponent(ttk.Frame):
             wraplength=0
         )
         done_button.grid(row=2, column=0, columnspan=2, pady=20)
+        
+        back_button = buildButton(self, "Back", navigateTo, MAINMENU_UI)
+        back_button.grid(row=3, column=0, columnspan=2, pady=20)
         
     def addNewCustomGesture(frame, newHG_name):
         enteredHGName = newHG_name.get()
