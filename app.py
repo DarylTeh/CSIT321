@@ -565,6 +565,12 @@ class Root(tk.Tk):
         self.geometry("800x800")
         self.configure(bg="#f0f0f0")
         
+        # scrollableContainer = ScrollableFrame(self)
+        # scrollableContainer.pack(fill="both", expand=True)
+        
+        # mainFrame = Frame(scrollableContainer.scrollable_frame)
+        # mainFrame.pack(fill="both", expand=True)
+        
         mainFrame = Frame(self)
         mainFrame.pack(fill="both", expand=True)
         
@@ -590,7 +596,7 @@ class Root(tk.Tk):
             # if page.getIdentity() in [PREDEFINED_HG_KEYBOARD_UI, PREDEFINED_HG_MOUSE_UI, CUSTOM_HG_KEYBOARD_UI]:
             #     page.populatePageElements(frame)
             frameList[page.getIdentity()] = frame
-            frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+            frame.grid(row=0, column=0, sticky="nsew")
         
         print("frames count: {0}".format(str(len(frameList))))
             
@@ -618,6 +624,28 @@ def loadProductName(root):
     root.grid_columnconfigure(0, weight=1)
     productName = Label(root, text="GAMING WITH BARE HANDS", font=("Venite Adoremus", 30, 'bold'), fg="#FFF", bg="black", justify="center", image=root.productIcon, compound="left")
     productName.grid(row=0, column=0, columnspan=10, pady=10, sticky="nsew")
+
+class ScrollableFrame(ttk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        
+        self.canvas = tk.Canvas(self)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
+        
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.window = self.canvas.create_window((0,0), window=self.scrollable_frame, anchor="nw")
+        self.bind("<Configure>", self.update_canvas_width)
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+        
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+        
+    def update_canvas_width(self):
+        self.canvas.itemconfig(self.window, width=self.canvas.winfo_width())
 
 class ProfileSelection(ttk.Frame):
     global profileList, SELECTED_PROFILE
@@ -1562,7 +1590,9 @@ class NewProfileComponent(ttk.Frame):
             newHG_name.delete(0, tk.END)
             addHandGestureToCSV(enteredHGName)
             trainModelWithCustomHandGesture(frame, TRAINING_LABEL)
-        navigateTo(CUSTOM_HG_KEYBOARD_UI)
+            navigateTo(CUSTOM_HG_KEYBOARD_UI)
+        else:
+            messagebox.showwarning("Warning", "Please give at least a alphabet to as your new custom hand gesture name nig")
         
     def isNewProfileExists(self, newProfile_entry):
         enteredProfileName = newProfile_entry.get()
@@ -1576,19 +1606,22 @@ class NewProfileComponent(ttk.Frame):
         
     def add_profiles(self, newProfile_entry):
         print(f"add_profiles()")
-        isProfileExist = self.isNewProfileExists(newProfile_entry)
-        if not isProfileExist:
-            print(f"profileList count before appending : {len(profileList)}")
-            profileList.append(newProfile_entry.get())
-            print(f"profileList count after appending : {len(profileList)}")
-            addNewProfileToCSV(newProfile_entry)
-            reloadProfilesData()
-            newProfile_entry.delete(0, "end")
-            # updateCurrentProfile(newProfile_entry.get())
-            # checkAndCreateNewCSV()
-            navigateTo(MAINMENU_UI)
+        if newProfile_entry.get() != "":
+            isProfileExist = self.isNewProfileExists(newProfile_entry)
+            if not isProfileExist:
+                print(f"profileList count before appending : {len(profileList)}")
+                profileList.append(newProfile_entry.get())
+                print(f"profileList count after appending : {len(profileList)}")
+                addNewProfileToCSV(newProfile_entry)
+                reloadProfilesData()
+                newProfile_entry.delete(0, "end")
+                # updateCurrentProfile(newProfile_entry.get())
+                # checkAndCreateNewCSV()
+                navigateTo(MAINMENU_UI)
+            else:
+                show_duplicate_profile_warning()
         else:
-            show_duplicate_profile_warning()
+            messagebox.showwarning("Warning", "You need to add at least one alphabet as your profile name nig.")
         
     def getIdentity():
         return NEW_PROFILE_UI
