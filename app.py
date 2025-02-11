@@ -765,7 +765,7 @@ class MainMenuUI(ttk.Frame):
         testingBtn = Button(
             self,
             text="Test Hand Gestures",
-            command= lambda: initiateWebCam(self, False),
+            command= lambda: initiateWebCam(self, 3),
             activebackground="blue",
             activeforeground="white",
             anchor="center",
@@ -791,7 +791,7 @@ class MainMenuUI(ttk.Frame):
         startGameBtn = Button(
             self,
             text="Start Game",
-            command= lambda: initiateWebCam(self, True),
+            command= lambda: initiateWebCam(self, 1),
             activebackground="blue",
             activeforeground="white",
             anchor="center",
@@ -880,7 +880,7 @@ class MainMenuUI(ttk.Frame):
         testingBtn = Button(
             self,
             text="Test Hand Gestures",
-            command= lambda: initiateWebCam(self, False),
+            command= lambda: initiateWebCam(self, 3),
             activebackground="blue",
             activeforeground="white",
             anchor="center",
@@ -906,7 +906,7 @@ class MainMenuUI(ttk.Frame):
         startGameBtn = Button(
             self,
             text="Start Game",
-            command= lambda: initiateWebCam(self, True),
+            command= lambda: initiateWebCam(self, 1),
             activebackground="blue",
             activeforeground="white",
             anchor="center",
@@ -1470,7 +1470,7 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         add_gesture_button = Button(
             self,
             text="Click to record",
-            command= lambda: initiateWebCam(self, False),
+            command= lambda: initiateWebCam(self, 2),
             activebackground="blue",
             activeforeground="white",
             anchor="center",
@@ -1975,10 +1975,10 @@ def initiateWebCam(frame, isGameStart):
                             # point_history_classifier_labels[most_common_fg_id[0][0]],
                         )
 
-                        if isGameStart:
+                        if isGameStart == 1:
                             if gesture_text == "MouseMove" or gesture_text == "LeftClick" or gesture_text == "RightClick":
                                 hand_cursor_control(cursor_x, cursor_y)
-                            if isGameStart:
+                            if isGameStart == 1:
                                 if isTurboChecked:
                                     await press_key(gesture_text, is_turbo=True)
                                 else:
@@ -1991,7 +1991,7 @@ def initiateWebCam(frame, isGameStart):
                 #     point_history.append([0, 0])
 
                 # debug_image = draw_point_history(debug_image, point_history)
-                debug_image = draw_info(debug_image, fps, mode, number)
+                debug_image = draw_info(isGameStart,debug_image, fps, mode, number)
 
                 cv.imshow('HGR To Play Games', debug_image)
                 frame.after(0, hide_loading_popup, loading_window)
@@ -2063,8 +2063,6 @@ def select_mode(key, mode):
         mode = 0
     if key == 107:  # k
         mode = 1
-    if key == 104:  # h
-        mode = 2
     if key == 32:   # space bar
         mode = 3
         number = getNextSeqOfKeypointCount()
@@ -2400,13 +2398,46 @@ def draw_info_text(image, brect, handedness, hand_sign_text): # params can add b
 
 #     return image
 
-def draw_info(image, fps, mode, number):
-    cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
-               1.0, (0, 0, 0), 4, cv.LINE_AA)
-    cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
-               1.0, (255, 255, 255), 2, cv.LINE_AA)
-
-    mode_string = ['Logging Key Point', 'Logging Point History']
+def draw_info(isGameStart, image, fps, mode, number):
+    if isGameStart == 2:
+    #outlines
+        cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (0, 0, 0), 4, cv.LINE_AA)
+        cv.putText(image, "Press space-bar to record position for recognition.", (10, 55), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (0, 0, 0), 4, cv.LINE_AA)
+        cv.putText(image, "The more recorded positions, the more accurate the recognition will be.", (10, 80), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (0, 0, 0), 4, cv.LINE_AA)
+        cv.putText(image, "For keybinds that can be executed ambidextrously, please record positions for both hands.", (10, 105), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (0, 0, 0), 4, cv.LINE_AA)
+        cv.putText(image, "hands.", (10, 130), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (0, 0, 0), 4, cv.LINE_AA)
+        cv.putText(image, "Press 'Esc' to exit after recording.", (10, 155), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (0, 0, 0), 4, cv.LINE_AA)
+        #actual text
+        cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (255, 255, 255), 2, cv.LINE_AA)
+        cv.putText(image, "Press space-bar to record position for recognition.", (10, 55), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (255, 255, 255), 2, cv.LINE_AA)
+        cv.putText(image, "The more recorded positions, the more accurate the recognition will be.", (10, 80), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (255, 255, 255), 2, cv.LINE_AA)
+        cv.putText(image, "For keybinds that can be executed ambidextrously, please record positions for both", (10, 105), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (255, 255, 255), 2, cv.LINE_AA)
+        cv.putText(image, "hands.", (10, 130), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (255, 255, 255), 2, cv.LINE_AA)
+        cv.putText(image, "Press 'Esc' to exit after recording.", (10, 155), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (255, 255, 255), 2, cv.LINE_AA)
+    else:
+        #outlines
+        cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (0, 0, 0), 4, cv.LINE_AA)
+        cv.putText(image, "Press 'Esc' to exit.", (10, 55), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (0, 0, 0), 4, cv.LINE_AA)
+        #actual text
+        cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (255, 255, 255), 2, cv.LINE_AA)
+        cv.putText(image, "Press 'Esc' to exit.", (10, 55), cv.FONT_HERSHEY_SIMPLEX,
+                0.7, (255, 255, 255), 2, cv.LINE_AA)
+    mode_string = ['Logging Key Point']
     if 1 <= mode <= 2:
         cv.putText(image, "MODE:" + mode_string[mode - 1], (10, 90),
                    cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1,
