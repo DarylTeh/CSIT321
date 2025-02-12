@@ -356,8 +356,8 @@ def populatePredefinedAndCustomKeyboardGesturesList():
         print(f"isFirstRender: {isFirstRender}, {CURRENT_PROFILE_KEYPOINT_LABEL_PATH} loaded")
         
 def produceTrainAndTestDataset():
-    X_dataset = np.loadtxt(DATASET_PATH, delimiter=',', dtype='float32', usecols=list(range(1, (21*2)+1)))
-    y_dataset = np.loadtxt(DATASET_PATH, delimiter=',', dtype='int32', usecols=(0))
+    X_dataset = np.loadtxt(DATASET_PATH + DATASET_FILENAME + FILEEXT, delimiter=',', dtype='float32', usecols=list(range(1, (21*2)+1)))
+    y_dataset = np.loadtxt(DATASET_PATH + DATASET_FILENAME + FILEEXT, delimiter=',', dtype='int32', usecols=(0))
     X_train, X_test, y_train, y_test = train_test_split(X_dataset, y_dataset, train_size=0.75, random_state=RANDOM_SEED)
     return X_train, X_test, y_train, y_test
 
@@ -543,10 +543,10 @@ def deleteHandGestureFromCSV(gesture):
 
 def updateKeypointCSV(index):
     print(f"updateKeypointCSV()")
-    dataframe = pd.read_csv(DATASET_PATH, header=None, engine="python", on_bad_lines="skip")
+    dataframe = pd.read_csv(DATASET_PATH + DATASET_FILENAME + FILEEXT, header=None, engine="python", on_bad_lines="skip")
     updatedDataframe = dataframe[dataframe[0] != index].reset_index(drop=True)
     updatedDataframe[0] = updatedDataframe[0].where(updatedDataframe[0] < index, updatedDataframe[0]-1)
-    updatedDataframe.to_csv(DATASET_PATH, index=False, header=False)
+    updatedDataframe.to_csv(DATASET_PATH + DATASET_FILENAME + FILEEXT, index=False, header=False)
 
 class CustomHandGestureObject:
     def __init__(self, name):
