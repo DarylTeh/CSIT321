@@ -1570,7 +1570,7 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         # done_button = buildDoneButton(self, "Done", addNewCustomGesture, newHG_entry)
         done_button = Button(
             self,
-            text="Done",
+            text="Train",
             command= lambda: addNewCustomGesture(self, newHG_entry),
             activebackground="blue",
             activeforeground="white",
@@ -1595,7 +1595,7 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         done_button.grid(row=4, column=0, columnspan=2, pady=20)
         
         back_button = buildButton(self, "Back", navigateTo, CUSTOM_HG_KEYBOARD_UI)
-        back_button.grid(row=len(customKeyboardGesturesList) +4, column=0, columnspan=MAX_COLUMN, pady=20)
+        back_button.grid(row=5, column=0, columnspan=2, pady=20)
     
     def getIdentity():
         return NEW_CUSTOM_HG_UI
