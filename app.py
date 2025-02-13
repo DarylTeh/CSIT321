@@ -316,7 +316,8 @@ def deleteCustomHG(gesture):
 
 def populatePredefinedAndCustomKeyboardGesturesList():
     print(f"populatePredefinedAndCustomKeyboardGesturesList()")
-    global predefinedKeyboardGesturesList, customKeyboardGesturesList, predefinedMouseGesturesList
+    global predefinedKeyboardGesturesList, customKeyboardGesturesList, predefinedMouseGesturesList, allGesturesPreview
+    allGesturesPreview = {}
     if isFirstRender:
         with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT,
             encoding='utf-8-sig') as f:
@@ -336,6 +337,24 @@ def populatePredefinedAndCustomKeyboardGesturesList():
             print(f"populateCustomKeyboardGesturesList() result: {len(customKeyboardGesturesList)}")
         print(f"isFirstRender: {isFirstRender}")
 
+        first_occurrence = {}  # Track first occurrence of each gesture index
+        dataset_filepath = DATASET_PATH + DATASET_FILENAME + FILEEXT
+        with open(dataset_filepath, encoding='utf-8-sig') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                gesture_index = int(row[0])  # First column is the gesture index
+                coords = row[1:]  # Rest are coordinates
+
+                if gesture_index not in first_occurrence:
+                    first_occurrence[gesture_index] = coords  # Store first occurrence
+
+        # Map previews using labels
+        allGesturesPreview = {
+            keypoint_classifier_labels[idx][0]: " ".join(first_occurrence[idx]) if idx in first_occurrence else "No Preview"
+            for idx in range(len(keypoint_classifier_labels))
+        }
+
+        print(f"Previews Extracted: {allGesturesPreview}")
     else:
         with open(CURRENT_PROFILE_KEYPOINT_LABEL_PATH,
             encoding='utf-8-sig') as f:
@@ -409,7 +428,7 @@ def trainModelWithCustomHandGesture(frame, text):
             # val_loss, val_acc = model.evaluate(X_test, y_test, batch_size=128)
             model = tf.keras.models.load_model(MODEL_SAVE_PATH)
             # predict_result = model.predict(np.array([X_test[0]]))
-            model.save(MODEL_SAVE_PATH, include_optimizer=False)    
+            model.save(MODEL_SAVE_PATH, include_optimizer=False)
             converter = tf.lite.TFLiteConverter.from_keras_model(model)
             converter.optimizations = [tf.lite.Optimize.DEFAULT]
             tflite_quantized_model = converter.convert()
@@ -1113,7 +1132,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         
     def populatePageElements(self):
         print(f"PredefinedHandGesturesKeyboardUI populatePageElements()")
-        print(f"PredefinedHandGesturesKeyboardUI predefinedKeyboardGesturesList: {len(predefinedKeyboardGesturesList)}")
+        print(f"PredefinedHandGesturesKeyboardUI predefinedKeyboardGesturesList: {len(predefinedKeyboardGesturesList)} {predefinedKeyboardGesturesList}")
         
         for widget in self.winfo_children():
             widget.destroy()
@@ -1145,7 +1164,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
                 componentRow = idx // MAX_COLUMN
                 componentColumn = idx % MAX_COLUMN
                 
-                hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording, key_mapping = key_mapping, isMouse=False)
+                hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording, key_mapping = key_mapping, isMouse=False, coords=allGesturesPreview[predefinedKeyboardGesturesList[idx]])
                 hgComponent.grid(row=componentRow+2, column=componentColumn, ipadx=50, ipady=50)
                 
         # for row in range((len(predefinedKeyboardGesturesList) + 2) // 3):  # Total rows
@@ -1206,7 +1225,6 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
     
 class PredefinedHandGesturesMouseUI(ttk.Frame):
     global predefinedMouseGesturesList
-    
     def __init__(self, mainFrame, root):
         super().__init__(mainFrame, padding=20)
         self.root = root
@@ -1228,7 +1246,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
 
     def populatePageElements(self):
         print(f"PredefinedHandGesturesMouseUI populatePageElements()")
-        print(f"PredefinedHandGesturesMouseUI predefinedMouseGesturesList: {len(predefinedMouseGesturesList)}")
+        print(f"PredefinedHandGesturesMouseUI predefinedMouseGesturesList: {len(predefinedMouseGesturesList)} {predefinedMouseGesturesList}")
         
         for widget in self.winfo_children():
             widget.destroy()
@@ -1258,7 +1276,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
             componentRow = idx // MAX_COLUMN
             componentColumn = idx % MAX_COLUMN
             
-            hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording, key_mapping=key_mapping, isMouse=True)
+            hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording, key_mapping=key_mapping, isMouse=True, coords=allGesturesPreview[predefinedMouseGesturesList[idx]])
             hgComponent.grid(row=componentRow+2, column=componentColumn, ipadx=50, ipady=50)
             
             # label = ttk.Label(self, text=f"{gesture}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
@@ -1350,13 +1368,11 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         style.configure('Header.TLabel', font=('Arial', 16, 'bold'), background='#f0f0f0', foreground='black')
         style.configure('TLabel', font=('Arial', 12), background='#f0f0f0')
         style.configure('Hover.TButton', background='#80c1ff', font=('Arial', 12, 'bold'))
-        
-        print(f"customHandGesturesKeyboardUI loaded. customKeyboardGesturesList has {len(customKeyboardGesturesList)} items")
         self.populatePageElements()
         
     def populatePageElements(self):
         print(f"CustomHandGesturesKeyboardUI populatePageElements()")
-        print(f"CustomHandGesturesKeyboardUI customKeyboardGesturesList: {len(customKeyboardGesturesList)}")
+        print(f"CustomHandGesturesKeyboardUI customKeyboardGesturesList: {len(customKeyboardGesturesList)} {customKeyboardGesturesList}")
         
         for widget in self.winfo_children():
             widget.destroy()
@@ -1388,7 +1404,7 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
                 componentRow = idx // MAX_COLUMN
                 componentColumn = idx % MAX_COLUMN
                 
-                hgComponent = CustomHandGestureComponent.HandGestureComponent(self, label_text=customHGName, button_command=self.enable_recording, delete_button_command=deleteCustomGesture, key_mapping=key_mapping)
+                hgComponent = CustomHandGestureComponent.HandGestureComponent(self, label_text=customHGName, button_command=self.enable_recording, delete_button_command=deleteCustomGesture, key_mapping=key_mapping, coords=allGesturesPreview[customKeyboardGesturesList[idx]])
                 hgComponent.grid(row=componentRow+2, column=componentColumn, ipadx=50, ipady=50)
         
         add_gesture_button = buildButton(self, "Add New Hand Gesture", navigateTo, NEW_CUSTOM_HG_UI)
