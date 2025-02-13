@@ -1472,6 +1472,9 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         proceed_button = buildDoneButton(self, "Done", navigateTo, CUSTOM_HG_UI)
         proceed_button.grid(row=len(customKeyboardGesturesList) +3, column=0, columnspan=MAX_COLUMN, pady=20)
         
+        back_button = buildButton(self, "Back", navigateTo, CUSTOM_HG_KEYBOARD_UI)
+        back_button.grid(row=len(customKeyboardGesturesList) +4, column=0, columnspan=MAX_COLUMN, pady=20)
+        
     def record_key(self, event, gesture, label):
         # Store the hexadecimal code of the key using ord()
         vk_code = win32api.VkKeyScan(event.char)
@@ -1592,7 +1595,7 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
             wraplength=0
         )
         done_button.grid(row=4, column=0, columnspan=2, pady=20)
-        
+    
     def getIdentity():
         return NEW_CUSTOM_HG_UI
     
