@@ -76,6 +76,8 @@ isTurboChecked = False
 key_mapping = {}
 keystroke_binding = {}
 profileList = []
+allGesturesPreview = {}
+
 
 font_path = "VeniteAdoremus.otf"
 font_size = 15
@@ -100,7 +102,7 @@ PROFILES_FILEPATH = 'profiles.csv'
 # this method will just load the data from respoective csv files.
 def reloadProfileDependantData():
     print(f"reloadProfileDependantData()")
-    global predefinedKeyboardGesturesList, predefinedMouseGesturesList, customKeyboardGesturesList
+    global predefinedKeyboardGesturesList, predefinedMouseGesturesList, customKeyboardGesturesList, allGesturesPreview
     
     predefinedKeyboardGesturesList.clear()
     predefinedMouseGesturesList.clear()
@@ -118,6 +120,11 @@ def reloadProfilesData():
     global profileList
     profileList.clear()
     loadProfileList()
+    
+def reloadGesturesPreview():
+    global allGesturesPreview
+    allGesturesPreview.clear()
+    loadGesturesPreview()
 
 # for now take the profile as int number
 def updateCurrentProfile(profile):
@@ -313,11 +320,57 @@ def deleteCustomHG(gesture):
         customKeyboardGesturesList.remove(gesture)
     else:
         print(f"HG {gesture} not exists.")
+        
+def loadGesturesPreview():
+    global isFirstRender, allGesturesPreview
+    if isFirstRender:
+         with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT,
+            encoding='utf-8-sig') as f:
+            keypoint_classifier_labels = list(csv.reader(f))
+            first_occurrence = {}  # Track first occurrence of each gesture index
+            dataset_filepath = DATASET_PATH + DATASET_FILENAME + FILEEXT
+            with open(dataset_filepath, encoding='utf-8-sig') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    gesture_index = int(row[0])  # First column is the gesture index
+                    coords = row[1:]  # Rest are coordinates
+
+                    if gesture_index not in first_occurrence:
+                        first_occurrence[gesture_index] = coords  # Store first occurrence
+
+            # Map previews using labels
+            allGesturesPreview = {
+                keypoint_classifier_labels[idx][0]: " ".join(first_occurrence[idx]) if idx in first_occurrence else "No Preview"
+                for idx in range(len(keypoint_classifier_labels))
+            }
+            print(f"Previews Extracted: {allGesturesPreview}")
+    else:
+        with open(CURRENT_PROFILE_KEYPOINT_LABEL_PATH,
+            encoding='utf-8-sig') as f:
+            keypoint_classifier_labels = list(csv.reader(f))
+            first_occurrence = {}  # Track first occurrence of each gesture index
+            dataset_filepath = DATASET_PATH + DATASET_FILENAME + FILEEXT
+            with open(dataset_filepath, encoding='utf-8-sig') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    gesture_index = int(row[0])  # First column is the gesture index
+                    coords = row[1:]  # Rest are coordinates
+
+                    if gesture_index not in first_occurrence:
+                        first_occurrence[gesture_index] = coords  # Store first occurrence
+
+            # Map previews using labels
+            allGesturesPreview = {
+                keypoint_classifier_labels[idx][0]: " ".join(first_occurrence[idx]) if idx in first_occurrence else "No Preview"
+                for idx in range(len(keypoint_classifier_labels))
+            }
+
+            print(f"Previews Extracted: {allGesturesPreview}")
 
 def populatePredefinedAndCustomKeyboardGesturesList():
     print(f"populatePredefinedAndCustomKeyboardGesturesList()")
     global predefinedKeyboardGesturesList, customKeyboardGesturesList, predefinedMouseGesturesList, allGesturesPreview
-    allGesturesPreview = {}
+    # allGesturesPreview = {}
     if isFirstRender:
         with open(KEYPOINT_LABEL_FILEPATH + KEYPOINT_LABEL_FILENAME + FILEEXT,
             encoding='utf-8-sig') as f:
@@ -1139,6 +1192,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
             
         loadWallpaper(self)
         loadProductName(self)
+        reloadGesturesPreview()
         
         title = Label(self, text=predefinedHGTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
         title.grid(pady=10, columnspan=MAX_COLUMN)
@@ -1253,6 +1307,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
             
         loadWallpaper(self)
         loadProductName(self)
+        reloadGesturesPreview()
         
         title = Label(self, text=predefinedHGTitle, font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
         title.grid(pady=10, columnspan=MAX_COLUMN)
@@ -1276,6 +1331,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
             componentRow = idx // MAX_COLUMN
             componentColumn = idx % MAX_COLUMN
             
+            # in key_mapping, only has 7 default gestures and mapping, without the new added custom gesture
             hgComponent = PredefinedHandGestureComponent.HandGestureComponent(self, label_text=gesture, button_command=self.enable_recording, key_mapping=key_mapping, isMouse=True, coords=allGesturesPreview[predefinedMouseGesturesList[idx]])
             hgComponent.grid(row=componentRow+2, column=componentColumn, ipadx=50, ipady=50)
             
@@ -1379,6 +1435,7 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
             
         loadWallpaper(self)
         loadProductName(self)
+        reloadGesturesPreview()
         
         title = Label(self, text="CUSTOM HAND GESTURES", font=("Venite Adoremus", 25, 'bold'), fg="#FFF", bg="black", justify="center")
         title.grid(pady=10, columnspan=MAX_COLUMN)

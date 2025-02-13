@@ -1,6 +1,8 @@
 from tkinter import ttk, Canvas
-
-
+import numpy as np
+import cv2
+from PIL import Image
+from PIL import ImageFont, ImageTk
 class HandGestureComponent(ttk.Frame):
     def __init__(self, parent, label_text, button_command=None, delete_button_command=None, key_mapping = None, coords=None, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
@@ -38,10 +40,17 @@ class HandGestureComponent(ttk.Frame):
 
         # Store the PhotoImage as an instance variable
         self.photo = None
-                
-        if self.key_mapping[label_text][1]:
-            self.label = ttk.Label(container, text=f"{self.label_text}: {self.key_mapping[label_text][1]}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
-        else:         
+        
+        if label_text in self.key_mapping and self.key_mapping[label_text]:
+            print(f"{label_text} exists in key_mapping")        
+            if self.key_mapping[label_text][1]:
+                print(f"{label_text} has keybind")
+                self.label = ttk.Label(container, text=f"{self.label_text}: {self.key_mapping[label_text][1]}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
+            else:
+                print(f"{label_text} has no keybind")         
+                self.label = ttk.Label(container, text=f"{self.label_text}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
+        else:
+            print(f"{label_text} does not exist in key_mapping")
             self.label = ttk.Label(container, text=f"{self.label_text}: Not assigned", font=("Venite Adoremus", 10, 'bold'), foreground="red")
         self.label.grid(pady=(10,5))
         
