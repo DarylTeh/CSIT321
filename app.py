@@ -1521,15 +1521,20 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
         self.custom_key_mapping = {}
         self.newHGName = ''
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(2, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        instructions = """1. Enter Custom Hand Gesture name.
+2. Click on "Click to Record" to start recording the hand gesture.
+3. Click on "Train" to train and save the custom hand gesture."""
         
         loadWallpaper(self)
         loadProductName(self)
         
+        instruction_label = Label(self, text=instructions, font=("Venite Adoremus", 15, 'bold'), fg="#FFF", bg="black", justify="center")
+        instruction_label.grid(row=1, column=0, columnspan=2, padx=(0, 10), pady=5, sticky="ew")
         newHG_label = Label(self, text='Hand Gesture Name', font=("Venite Adoremus", 15, 'bold'), fg="#FFF", bg="black", justify="center")
-        newHG_label.grid(row=1, column=0, padx=(0, 10), pady=5, sticky="e")
+        newHG_label.grid(row=2, column=0, padx=(0, 10), pady=5, sticky="e")
         newHG_entry = Entry(self, textvariable=self.newHGName, font=("Venite Adoremus", 15, 'bold'), fg="#FFF", bg="black", justify="center")
-        newHG_entry.grid(row=1, column=1, pady=5, sticky="w")
+        newHG_entry.grid(row=2, column=1, pady=5, sticky="w")
         
         style = ttk.Style()
         style.theme_use('clam')
@@ -1565,7 +1570,7 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
             width=25,
             wraplength=0
         )
-        add_gesture_button.grid(row=2, column=0, columnspan=2, pady=20)
+        add_gesture_button.grid(row=3, column=0, columnspan=2, pady=20)
         
         # done_button = buildDoneButton(self, "Done", addNewCustomGesture, newHG_entry)
         done_button = Button(
@@ -1592,10 +1597,10 @@ class NewCustomHandGestureForKeyboard(ttk.Frame):
             width=25,
             wraplength=0
         )
-        done_button.grid(row=4, column=0, columnspan=2, pady=20)
+        done_button.grid(row=5, column=0, columnspan=2, pady=20)
         
         back_button = buildButton(self, "Back", navigateTo, CUSTOM_HG_KEYBOARD_UI)
-        back_button.grid(row=5, column=0, columnspan=2, pady=20)
+        back_button.grid(row=6, column=0, columnspan=2, pady=20)
     
     def getIdentity():
         return NEW_CUSTOM_HG_UI
