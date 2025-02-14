@@ -1234,7 +1234,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         vk_code = win32api.VkKeyScan(event.char)
         key_name = event.keysym
         if self.checkIfKeystrokeBound(vk_code):
-            key_mapping[gesture] = vk_code
+            key_mapping[gesture] = (vk_code, key_name)
             label.config(text=f"{gesture}: {key_name}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
             self.root.unbind("<Key>")
             update_keystroke_binding(gesture, vk_code, key_name)
@@ -1362,7 +1362,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
         vk_code = win32api.VkKeyScan(event.char)
         key_name = event.keysym
         if self.checkIfKeystrokeBound(vk_code):
-            key_mapping[gesture] = vk_code
+            key_mapping[gesture] = (vk_code, key_name)
             label.config(text=f"{gesture}: {key_name}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
             self.root.unbind("<Key>")
             update_keystroke_binding(gesture, vk_code, key_name)
