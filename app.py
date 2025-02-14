@@ -1674,7 +1674,7 @@ class NewProfileComponent(ttk.Frame):
             trainModelWithCustomHandGesture(frame, TRAINING_LABEL)
             navigateTo(CUSTOM_HG_KEYBOARD_UI)
         else:
-            messagebox.showwarning("Warning", "Please give at least a alphabet to as your new custom hand gesture name nig")
+            messagebox.showwarning("Warning", "Please give at least a alphabet to as your new custom hand gesture name")
         
     def isNewProfileExists(self, newProfile_entry):
         enteredProfileName = newProfile_entry.get()
@@ -1703,7 +1703,7 @@ class NewProfileComponent(ttk.Frame):
             else:
                 show_duplicate_profile_warning()
         else:
-            messagebox.showwarning("Warning", "You need to add at least one alphabet as your profile name nig.")
+            messagebox.showwarning("Warning", "You need to add at least one alphabet as your profile name.")
         
     def getIdentity():
         return NEW_PROFILE_UI
