@@ -24,16 +24,14 @@ SourceFiles=SourceFiles
 InstallPrompt=
 DisplayLicense=
 FinishMessage=
-TargetName=C:\Users\dteh6\Downloads\ProgrammingProjects\hand play game\HGR.EXE
+TargetName=C:\Users\dteh6\Downloads\ProgrammingProjects\CSIT321\DONT INCLUDE THIS IN EXE AND MAKE SURE PACKAGE.ZIP IS ALWAYS UPDATED TO LATEST MASTER\HGR.EXE
 FriendlyName=HGR
 AppLaunched=cmd /c HGR.bat
 PostInstallCmd=<None>
 AdminQuietInstCmd=
 UserQuietInstCmd=
 FILE0="HGR.bat"
-FILE1="package.zip"
 [SourceFiles]
-SourceFiles0=C:\Users\dteh6\Downloads\ProgrammingProjects\hand play game\
+SourceFiles0=C:\Users\dteh6\Downloads\ProgrammingProjects\CSIT321\
 [SourceFiles0]
 %FILE0%=
-%FILE1%=
