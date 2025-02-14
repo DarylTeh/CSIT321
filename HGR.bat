@@ -17,19 +17,18 @@ if %errorlevel% neq 0 (
 :: Set the installation directory
 set "INSTALL_DIR=%USERPROFILE%\Downloads\HGR"
 
-:: Create the folder if it doesn’t exist
-if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
+:: Clone the repository from GitHub
+echo Cloning repository from GitHub...
+git clone https://github.com/DarylTeh/CSIT321 "%INSTALL_DIR%" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Failed to clone repository. Exiting...
+    exit /b %errorlevel%
+)
 
-:: Move all extracted files to the target location
-xcopy /E /Y "%~dp0*" "%INSTALL_DIR%"
-
-:: Change to the target directory
+:: Change to the cloned directory
 cd /d "%INSTALL_DIR%"
 
-::grant all permissions for folder
-icacls "%INSTALL_DIR%" /grant "%USERPROFILE%":(OI)(CI)F /T
-
-:: Run the application
+:: Run the application setup
 echo Installing dependencies...
 %pythonchooser% -m pip install -r requirements.txt
 if %errorlevel% neq 0 (
@@ -37,5 +36,6 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
+:: Run the application
 echo Running application...
-%pythonchooser% app.py 
+%pythonchooser% app.py
