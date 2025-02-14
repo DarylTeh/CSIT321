@@ -1478,12 +1478,12 @@ class CustomHandGesturesKeyboardUI(ttk.Frame):
         vk_code = win32api.VkKeyScan(event.char)
         key_name = event.keysym
         if self.checkIfKeystrokeBound(vk_code):
-            key_mapping[gesture] = vk_code
+            key_mapping[gesture] = (vk_code, key_name)
             label.config(text=f"{gesture}: {key_name}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
             self.root.unbind("<Key>")
             update_keystroke_binding(gesture, vk_code, key_name)
             keystroke_binding[gesture] = key_name
-        key_mapping[gesture] = vk_code
+        key_mapping[gesture] = (vk_code, key_name)
         self.root.unbind("<Key>")
 
     # Define a function to enable key recording
