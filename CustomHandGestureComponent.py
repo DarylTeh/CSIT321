@@ -57,7 +57,7 @@ class HandGestureComponent(ttk.Frame):
         self.button = ttk.Button(container, text="Click to record", command=lambda g=self.label_text, l=self.label: self.button_command(g, l))
         self.button.grid(pady=(10,5))
         
-        self.delete_button = ttk.Button(container, text="Delete", command=lambda g=label_text: self.delete_button_command(g, parent))
+        self.delete_button = ttk.Button(container, text="Delete", command=lambda g=label_text: self.delete_button_command(g, self))
         self.delete_button.grid(pady=(10,5))
         
         def hoverButtonEffect(customHGName):
