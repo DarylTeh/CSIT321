@@ -573,12 +573,17 @@ def deleteCustomGesture(customHGName, frame):
         finally:
             # Hide the spinner when the task is done
             frame.after(0, hide_loading_popup, loading_window)
+            
+    response = messagebox.askyesno("Warning", "Dear player, are you sure you want to delete the gesture "+str(customHGName)+"?")
+    if response:
+        loading_window, spinner = show_loading_popup(frame, DELETING_LABEL)
+        threading.Thread(target=task, daemon=True).start()
 
-    # Show the loading spinner
-    loading_window, spinner = show_loading_popup(frame, DELETING_LABEL)
+    # # Show the loading spinner
+    # loading_window, spinner = show_loading_popup(frame, DELETING_LABEL)
 
-    # Run the task in a separate thread
-    threading.Thread(target=task, daemon=True).start()
+    # # Run the task in a separate thread
+    # threading.Thread(target=task, daemon=True).start()
     
 def deleteHandGestureFromCSV(gesture):
     print(f"deleteHandGestureFromCSV()")
@@ -1234,7 +1239,7 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
         vk_code = win32api.VkKeyScan(event.char)
         key_name = event.keysym
         if self.checkIfKeystrokeBound(vk_code):
-            key_mapping[gesture] = vk_code
+            key_mapping[gesture] = (vk_code, key_name)
             label.config(text=f"{gesture}: {key_name}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
             self.root.unbind("<Key>")
             update_keystroke_binding(gesture, vk_code, key_name)
@@ -1362,7 +1367,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
         vk_code = win32api.VkKeyScan(event.char)
         key_name = event.keysym
         if self.checkIfKeystrokeBound(vk_code):
-            key_mapping[gesture] = vk_code
+            key_mapping[gesture] = (vk_code, key_name)
             label.config(text=f"{gesture}: {key_name}", font=("Venite Adoremus", 10, 'bold'), foreground="green")
             self.root.unbind("<Key>")
             update_keystroke_binding(gesture, vk_code, key_name)
