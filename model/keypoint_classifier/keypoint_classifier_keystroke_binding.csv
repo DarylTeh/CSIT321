@@ -1,9 +1,7 @@
-﻿Up,135,w
-Down,131,s
-Left,101,a
-Right,104,d
+﻿Up,87,w
+Down8,83,s
+Left,65,a
+Right,68,d
 MouseMove,0,
 LeftClick,1,
 RightClick,2,
-test,103,c
-test2,86,v
