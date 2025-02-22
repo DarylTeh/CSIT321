@@ -1901,7 +1901,10 @@ def hand_cursor_control(cursor_x, cursor_y):
     win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE | win32con.MOUSEEVENTF_MOVE, 
                         absolute_x, absolute_y, 0, 0)
 
-async def press_key(key_name, is_turbo=False):
+# Dictionary to track held keys in turbo mode
+held_keys = {}
+
+async def press_key(key_name, is_turbo=False, is_released=False):
     global last_key_press_time
 
     # Ensure the key_name is valid
@@ -1910,40 +1913,49 @@ async def press_key(key_name, is_turbo=False):
 
     # Get the hex key code for the provided key name
     hex_key_code = key_mapping[key_name][0]
-
     current_time = time.time()
     
-    # Handle mouse clicks differently from keyboard events
+    # Handle mouse clicks separately from keyboard events
     if key_name in ["LeftClick", "RightClick", "MiddleClick"]:
         if is_turbo:
-            # For turbo mode, hold down the mouse button
-            win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN if key_name == "LeftClick" else
-                               win32con.MOUSEEVENTF_RIGHTDOWN if key_name == "RightClick" else
-                               win32con.MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0)
+            if key_name not in held_keys:
+                held_keys[key_name] = True
+                win32api.mouse_event(
+                    win32con.MOUSEEVENTF_LEFTDOWN if key_name == "LeftClick" else
+                    win32con.MOUSEEVENTF_RIGHTDOWN if key_name == "RightClick" else
+                    win32con.MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0
+                )
         else:
-            # For normal mode, click and release if throttle time has passed
             if current_time - last_key_press_time >= THROTTLE_TIME:
-                # Press mouse button
-                win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN if key_name == "LeftClick" else
-                                   win32con.MOUSEEVENTF_RIGHTDOWN if key_name == "RightClick" else
-                                   win32con.MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0)
+                win32api.mouse_event(
+                    win32con.MOUSEEVENTF_LEFTDOWN if key_name == "LeftClick" else
+                    win32con.MOUSEEVENTF_RIGHTDOWN if key_name == "RightClick" else
+                    win32con.MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0
+                )
                 await asyncio.sleep(0.05)  # Short delay
-                # Release mouse button
-                win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP if key_name == "LeftClick" else
-                                   win32con.MOUSEEVENTF_RIGHTUP if key_name == "RightClick" else
-                                   win32con.MOUSEEVENTF_MIDDLEUP, 0, 0, 0, 0)
+                win32api.mouse_event(
+                    win32con.MOUSEEVENTF_LEFTUP if key_name == "LeftClick" else
+                    win32con.MOUSEEVENTF_RIGHTUP if key_name == "RightClick" else
+                    win32con.MOUSEEVENTF_MIDDLEUP, 0, 0, 0, 0
+                )
                 last_key_press_time = current_time
     else:
-        # Handle keyboard events as before
+        # Handle keyboard events
         if is_turbo:
-            win32api.keybd_event(hex_key_code, 0, 0, 0)
+            if key_name not in held_keys:  # Press only if not already held
+                held_keys[key_name] = True
+                win32api.keybd_event(hex_key_code, 0, 0, 0)
         else:
             if current_time - last_key_press_time >= THROTTLE_TIME:
                 win32api.keybd_event(hex_key_code, 0, 0, 0)
                 await asyncio.sleep(0.05)
                 win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
                 last_key_press_time = current_time
-                # print(f"Key {key_name} pressed (Throttled mode).")
+
+        # If gesture is no longer recognized, release the key
+        if is_released and key_name in held_keys:
+            win32api.keybd_event(hex_key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
+            del held_keys[key_name]
 
 # WebCam processing function
 def initiateWebCam(frame, isGameStart):
