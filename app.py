@@ -259,7 +259,7 @@ def get_key_mapping():
             labels = csv.reader(f)
             for row in labels:
                 if len(row) >= 2:
-                    gesture,vk_code = row[0], int(row[1], 16)
+                    gesture,vk_code = row[0], int(row[1])
                     key_mapping[gesture] = vk_code
                     
                     key_name = row[2] if len(row) == 3 else ""
@@ -272,7 +272,7 @@ def get_key_mapping():
             labels = csv.reader(f)
             for row in labels:
                 if len(row) >= 2:
-                    gesture,vk_code = row[0], int(row[1], 16)
+                    gesture,vk_code = row[0], int(row[1])
                     key_mapping[gesture] = vk_code
                     
                     key_name = row[2] if len(row) == 3 else ""

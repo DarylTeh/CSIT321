@@ -1,7 +1,7 @@
-﻿Up,0x57
-Down,0x53
-Left,0x41
-Right,0x44
+﻿Up,87
+Down,83
+Left,65
+Right,68
 MouseMove,0
-LeftClick,0x01
-RightClick,0x02
+LeftClick,1
+RightClick,2
