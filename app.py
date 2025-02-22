@@ -1244,6 +1244,8 @@ class PredefinedHandGesturesKeyboardUI(ttk.Frame):
             self.root.unbind("<Key>")
             update_keystroke_binding(gesture, vk_code, key_name)
             keystroke_binding[gesture] = key_name
+        key_mapping[gesture] = (vk_code, key_name)
+        self.root.unbind("<Key>")
 
     # Define a function to enable key recording
     def enable_recording(self, gesture, label):
@@ -1372,6 +1374,7 @@ class PredefinedHandGesturesMouseUI(ttk.Frame):
             self.root.unbind("<Key>")
             update_keystroke_binding(gesture, vk_code, key_name)
             keystroke_binding[gesture] = key_name
+        key_mapping[gesture] = (vk_code, key_name)
         self.root.unbind("<Key>")
 
     # Define a function to enable key recording
